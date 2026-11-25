@@ -11,6 +11,7 @@
 | 4a | Load cached Base and Small when live local mode starts | src/api/app.py · lifespan → src/voice/local.py · warm |
 | 5 | Send the transcript through the same socket used for a typed turn | frontend/src/main.jsx · send, then the text path below |
 | 6 | Play each approved sentence in order | frontend/src/voice.js · createPlayback → play; src/api/voice.py · speak_sentence for a remote clip |
+| Voice hero | A recognized price question or booking command follows the same text steps below | tests/e2e/hero_browser.mjs exercises capture, transcription and playback |
 
 ## Text turn
 

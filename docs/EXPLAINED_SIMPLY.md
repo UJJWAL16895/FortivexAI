@@ -120,6 +120,8 @@ Retail software reps spend time answering similar first questions. ShelfPilot ha
 
 The text hero now adds a mailbox and a shared calendar. The mailbox key is a normalized fictional phone or email. The calendar offers a time in IST and reserves it only after “Confirm booking.” SQLite accepts a single owner per slot, like a ticket counter with one seat left. The CRM panel reads the saved lead and booking.
 
+The voice hero ran the same journey with three synthetic microphone inputs on 26 November 2026. The tester typed the fictional contact. The browser recorded the spoken question and the two booking commands. Each turn reached playback and one booking survived reconnecting. Physical microphone performance for the hero is **NOT MEASURED**.
+
 Think of a short stack of reviewed index cards. Each has a topic, two answers in English and Hindi, and a source label. The app looks for a clear topic match first. With the optional local multilingual model, it can also compare the meaning of a question with each card. It reads the selected answer directly and shows the citation. If the match is weak, it offers a specialist follow-up. A reviewer-approved digest prevents an edited file from entering this path.
 
 On 26 November 2026 the authored twenty-question evaluation found 14/15 expected sources with embeddings and 12/15 with aliases alone. Both correctly abstained on 5/5 unsupported questions. Larger held-out accuracy is **NOT MEASURED**. Grounded answers are built. Booking and CRM are the next gate.

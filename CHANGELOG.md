@@ -1,5 +1,9 @@
 # Changelog
 
+## Voice hero · 26 November 2026
+
+- Verified the cited question, booking offer and confirmation through the synthetic browser microphone path.
+
 ## Text hero · 26 November 2026
 
 - Added explicit timezone-labelled booking, SQLite contention protection and a CRM panel with returning demo lead recognition.

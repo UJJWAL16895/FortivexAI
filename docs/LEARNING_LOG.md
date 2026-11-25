@@ -1,5 +1,7 @@
 # Learning log
 
+The voice checkpoint reuses the text path after transcription. Its five-question quiz and run details are in STEP-009.
+
 ## Text hero quiz
 
 1. **What gives a returning demo lead the same record?** The normalized phone or email is its SQLite key.
