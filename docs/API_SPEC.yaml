@@ -3,6 +3,23 @@ info:
   title: ShelfPilot Sales Agent
   version: 0.1.0
 paths:
+  /api/crm:
+    get:
+      summary: Crm View
+      operationId: crm_view_api_crm_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  items:
+                    additionalProperties: true
+                    type: object
+                  type: array
+                type: object
+                title: Response Crm View Api Crm Get
   /health:
     get:
       summary: Health

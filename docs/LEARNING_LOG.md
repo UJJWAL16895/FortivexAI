@@ -1,5 +1,13 @@
 # Learning log
 
+## Text hero quiz
+
+1. **What gives a returning demo lead the same record?** The normalized phone or email is its SQLite key.
+2. **What reserves a time?** The exact confirmation after an offer. A general yes does not reserve it.
+3. **What prevents double-booking?** SQLite allows one row per time slot.
+4. **What if a confirmation is repeated?** The existing owner receives the same receipt.
+5. **What does the CRM panel read?** A snapshot of saved fictional leads and bookings from the backend.
+
 ## P4 quiz
 
 1. **What is a chunk?** One short, reviewed answer card with an ID, a topic and bilingual wording.

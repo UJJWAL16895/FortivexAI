@@ -1,5 +1,9 @@
 # Changelog
 
+## Text hero · 26 November 2026
+
+- Added explicit timezone-labelled booking, SQLite contention protection and a CRM panel with returning demo lead recognition.
+
 ## P4 · 26 November 2026
 
 - Added bilingual reviewed knowledge, optional local multilingual retrieval, transcript citations and explicit abstention.

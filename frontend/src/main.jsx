@@ -26,6 +26,8 @@ function App() {
   const [voiceError, setVoiceError] = useState('')
   const [voiceLanguage, setVoiceLanguage] = useState('en')
   const [lead, setLead] = useState(null)
+  const [crm, setCRM] = useState(null)
+  const [crmError, setCRMError] = useState('')
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
   const [connection, setConnection] = useState(0)
   const socket = useRef(null)
@@ -66,7 +68,7 @@ function App() {
         if (event.status === 'active') {
           setProvider(event.model)
           replyMode.current = event.provider === 'mock' ? 'mock' : 'live'
-          if (!['policy', 'session', 'knowledge'].includes(event.provider)) setMode(replyMode.current)
+          if (!['policy', 'session', 'knowledge', 'booking'].includes(event.provider)) setMode(replyMode.current)
         }
         return
       }
@@ -97,6 +99,7 @@ function App() {
       setPartial('')
       if (event.type === 'reply') setLatency(event.latency_ms)
       setPending(false)
+      if (event.mode === 'booking') setCRM(null)
     }
     client.onclose = () => {
       playback.current?.stop()
@@ -267,6 +270,22 @@ function App() {
             <section aria-labelledby="prompts-title" className="prompts">
               <h2 id="prompts-title">Try asking</h2>
               {prompts.map(prompt => <button className="suggestion" key={prompt} disabled={pending || mic !== 'idle' || status !== 'Connected'} onClick={() => send(prompt)}>{prompt}<span aria-hidden="true">↗</span></button>)}
+              <button className="suggestion" disabled={pending || mic !== 'idle' || status !== 'Connected'} onClick={() => send('Book a demo')}>Book a demo</button>
+              <button className="suggestion" onClick={async () => {
+                setCRMError('')
+                try {
+                  const response = await fetch('/api/crm')
+                  if (!response.ok) throw Error('CRM unavailable.')
+                  setCRM(await response.json())
+                } catch { setCRMError('CRM unavailable.') }
+              }}>View demo CRM</button>
+              {crmError && <p role="alert">{crmError}</p>}
+              {crm && <section aria-label="Demo CRM">
+                <h3>Demo CRM</h3>
+                <p>{crm.leads.length} leads · {crm.bookings.length} bookings</p>
+                <ul>{crm.leads.map(item => <li key={item.contact}>{item.name || item.contact}{item.company ? ' · ' + item.company : ''}</li>)}</ul>
+                <ul>{crm.bookings.map(item => <li key={item.slot}>{item.contact} · {item.label}</li>)}</ul>
+              </section>}
             </section>
           </aside>
         </div>

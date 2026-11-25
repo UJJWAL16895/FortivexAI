@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from src.api.text_session import text_session
 from src.api.voice import router as voice_router
 from src.core.settings import Settings
+from src.crm.store import CRM
 from src.llm.reply import ReplyPath, RequestBudget
 from src.rag.index import Knowledge
 from src.voice.local import warm
@@ -52,6 +53,12 @@ def create_app() -> FastAPI:
     app.state.settings = settings
     app.state.replies = ReplyPath(settings)
     app.state.knowledge = Knowledge.load()
+    app.state.crm = CRM(Path(settings.crm_path))
+
+    @app.get("/api/crm")
+    async def crm_view() -> dict[str, list[dict[str, object]]]:
+        crm: CRM = app.state.crm
+        return await asyncio.to_thread(crm.snapshot)
 
     @app.get("/health", response_model=Health, operation_id="getHealth")
     async def health() -> Health:

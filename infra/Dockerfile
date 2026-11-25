@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir -r requirements.lock && pip check
 COPY src/ src/
 COPY data/knowledge/ data/knowledge/
 COPY --from=frontend /ui/dist/ frontend/dist/
+RUN mkdir -p /app/data/runtime && chown 65532:65532 /app/data/runtime
 USER 65532:65532
 EXPOSE 8000
 CMD ["python", "-m", "uvicorn", "src.api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--ws", "websockets-sansio", "--ws-max-size", "16384", "--no-access-log"]

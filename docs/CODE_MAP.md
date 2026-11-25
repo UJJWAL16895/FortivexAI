@@ -24,3 +24,5 @@
 | 4 | Read provider SSE and split the draft | src/llm/gemini.py · stream_gemini; src/llm/sentences.py · SentenceBuffer.push |
 | 5 | Display approved sentences and final provenance | frontend/src/main.jsx · client.onmessage inside App |
 | 6 | Save the completed pair, publish the profile and pending values | src/memory/session.py · LeadSession.remember; src/api/text_session.py · text_session |
+| Booking | Enter a contact, request a demo time, explicitly confirm or return later | src/crm/conversation.py · BookingSession.handle → src/crm/store.py · save, offer, book |
+| CRM view | Load persisted demo leads and booking receipts | src/api/app.py · crm_view → src/crm/store.py · snapshot |

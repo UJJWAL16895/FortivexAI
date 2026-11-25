@@ -57,3 +57,4 @@ dd { margin: 0; text-align: right; font-weight: 650; font-variant-numeric: tabul
 }
 .voice-note { margin: 0 16px 14px; color: #645976; font-size: 12px; }
 dd { overflow-wrap: anywhere; }
+.sidebar { overflow-wrap: anywhere; }

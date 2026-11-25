@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     voice_stt: Literal["local", "gemini"] = "gemini"
     whisper_en_model: Literal["base", "small"] = "small"
     knowledge_embeddings: bool = False
+    crm_path: str = "data/runtime/crm.sqlite3"
 
     @model_validator(mode="after")
     def validate_live_config(self) -> Self:

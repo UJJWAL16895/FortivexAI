@@ -6,6 +6,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ConfigDict, StringConstraints, ValidationError
 
 from src.core.settings import Settings
+from src.crm.conversation import BookingSession
 from src.llm.reply import ReplyPath
 from src.memory.session import LeadSession
 from src.rag.index import Knowledge
@@ -30,6 +31,7 @@ async def text_session(socket: WebSocket) -> None:
     replies: ReplyPath = socket.app.state.replies
     knowledge: Knowledge = socket.app.state.knowledge
     session = LeadSession()
+    booking = BookingSession(socket.app.state.crm)
     await socket.accept()
     try:
         await socket.send_json(
@@ -54,14 +56,21 @@ async def text_session(socket: WebSocket) -> None:
             if turn.simulate_failure and not settings.allow_fallback_demo:
                 await socket.send_json({"type": "error", "text": "Fallback demo is disabled."})
                 continue
-            local_reply = session.handle(turn.text) if not turn.simulate_failure else None
+            booking_reply = (
+                await asyncio.to_thread(booking.handle, turn.text, session)
+                if not turn.simulate_failure
+                else None
+            )
+            local_reply = booking_reply or (
+                session.handle(turn.text) if not turn.simulate_failure else None
+            )
             answer = (
                 await asyncio.to_thread(knowledge.lookup, turn.text)
                 if local_reply is None and not turn.simulate_failure
                 else None
             )
             if local_reply is not None or answer is not None:
-                label = "session" if answer is None else "knowledge"
+                label = "booking" if booking_reply else "session" if answer is None else "knowledge"
                 text = answer.text if answer else local_reply
                 citation = (
                     {"id": answer.chunk.id, "title": answer.chunk.title, "source": answer.source}
@@ -72,7 +81,11 @@ async def text_session(socket: WebSocket) -> None:
                     {
                         "type": "provider",
                         "provider": label,
-                        "model": "Lead session" if answer is None else "ShelfPilot knowledge",
+                        "model": {
+                            "session": "Lead session",
+                            "knowledge": "ShelfPilot knowledge",
+                            "booking": "Booking and CRM",
+                        }[label],
                         "status": "active",
                     }
                 )
@@ -88,7 +101,8 @@ async def text_session(socket: WebSocket) -> None:
                     }
                 )
                 assert text is not None
-                session.remember(turn.text, text)
+                if booking_reply is None:
+                    session.remember(turn.text, text)
             else:
                 async for event in replies.stream(
                     turn.text, simulate=turn.simulate_failure, history=tuple(session.history)
@@ -96,6 +110,11 @@ async def text_session(socket: WebSocket) -> None:
                     await socket.send_json(event)
                     if event["type"] == "reply" and not turn.simulate_failure:
                         session.remember(turn.text, event["text"])
+            if booking.contact and not turn.simulate_failure:
+                fields = session.profile.model_dump(
+                    mode="json", exclude_none=True, exclude={"language"}
+                )
+                await asyncio.to_thread(booking.crm.save, booking.contact, fields)
             await socket.send_json(
                 {
                     "type": "profile",
