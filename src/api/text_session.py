@@ -1,7 +1,9 @@
 import asyncio
 import json
+from contextlib import aclosing
 from typing import Annotated
 
+from anyio import create_task_group
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ConfigDict, StringConstraints, ValidationError
 
@@ -29,6 +31,39 @@ async def text_session(socket: WebSocket) -> None:
         await socket.close(code=1008)
         return
 
+    await socket.accept()
+    incoming: asyncio.Queue[dict[str, object]] = asyncio.Queue(maxsize=4)
+
+    async def receive() -> None:
+        while True:
+            frame = await socket.receive()
+            if frame["type"] == "websocket.disconnect":
+                return
+            if incoming.full():
+                await socket.close(code=1008)
+                return
+            incoming.put_nowait(dict(frame))
+
+    async with create_task_group() as tasks:
+
+        async def read_until_disconnect() -> None:
+            try:
+                await receive()
+            finally:
+                tasks.cancel_scope.cancel()
+
+        async def handle_until_end() -> None:
+            try:
+                await run_turns(socket, incoming)
+            finally:
+                tasks.cancel_scope.cancel()
+
+        tasks.start_soon(read_until_disconnect)
+        tasks.start_soon(handle_until_end)
+
+
+async def run_turns(socket: WebSocket, incoming: asyncio.Queue[dict[str, object]]) -> None:
+
     settings: Settings = socket.app.state.settings
     replies: ReplyPath = socket.app.state.replies
     knowledge: Knowledge = socket.app.state.knowledge
@@ -36,7 +71,6 @@ async def text_session(socket: WebSocket) -> None:
     booking = BookingSession(socket.app.state.crm)
     insights: Insights = socket.app.state.insights
     call = Call()
-    await socket.accept()
     try:
         await socket.send_json(
             {
@@ -46,12 +80,10 @@ async def text_session(socket: WebSocket) -> None:
             }
         )
         while True:
-            frame = await socket.receive()
-            if frame["type"] == "websocket.disconnect":
-                return
+            frame = await incoming.get()
             raw = frame.get("text")
             try:
-                if raw is None or len(raw) > 4096:
+                if not isinstance(raw, str) or len(raw) > 4096:
                     raise ValueError("Expected a text frame up to 4096 characters")
                 turn = TextTurn.model_validate(json.loads(raw))
             except (ValidationError, ValueError, RecursionError):
@@ -119,12 +151,15 @@ async def text_session(socket: WebSocket) -> None:
                 if booking_reply is None:
                     session.remember(turn.text, text)
             else:
-                async for event in replies.stream(
-                    turn.text, simulate=turn.simulate_failure, history=tuple(session.history)
-                ):
-                    await socket.send_json(event)
-                    if event["type"] == "reply" and not turn.simulate_failure:
-                        session.remember(turn.text, event["text"])
+                async with aclosing(
+                    replies.stream(
+                        turn.text, simulate=turn.simulate_failure, history=tuple(session.history)
+                    )
+                ) as events:
+                    async for event in events:
+                        await socket.send_json(event)
+                        if event["type"] == "reply" and not turn.simulate_failure:
+                            session.remember(turn.text, event["text"])
             if booking.contact and not turn.simulate_failure:
                 fields = session.profile.model_dump(
                     mode="json", exclude_none=True, exclude={"language"}

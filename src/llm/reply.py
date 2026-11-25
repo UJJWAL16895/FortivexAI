@@ -23,6 +23,7 @@ from src.llm.sentences import SentenceBuffer
 
 # Cache only fixed synthetic quick prompts, without customer content or conversation history.
 CACHEABLE = {"How do I manage multiple stores?", "How much does it cost?", "Can I see a demo?"}
+REPLY_TIMEOUT = 9.0
 
 
 class LLMProvider(Protocol):
@@ -92,7 +93,7 @@ class ReplyPath:
             parts: list[str] = []
             try:
                 async with (
-                    asyncio.timeout(9),
+                    asyncio.timeout(REPLY_TIMEOUT),
                     aclosing(
                         stream_gemini(self.client, key, model, thinking, text, history)
                     ) as chunks,

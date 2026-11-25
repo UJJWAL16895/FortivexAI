@@ -15,6 +15,7 @@ from src.analytics.store import Dashboard, ReportStore
 from src.analytics.worker import Insights
 from src.api.text_session import text_session
 from src.api.voice import router as voice_router
+from src.core.logging import protect_server_logs
 from src.core.settings import Settings
 from src.crm.store import CRM
 from src.llm.reply import ReplyPath, RequestBudget
@@ -28,6 +29,7 @@ class Health(BaseModel):
 
 
 def create_app() -> FastAPI:
+    protect_server_logs()
     settings = Settings()
 
     @asynccontextmanager
