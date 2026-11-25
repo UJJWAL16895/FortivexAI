@@ -67,7 +67,7 @@ class CRM:
             row = db.execute("SELECT profile FROM leads WHERE contact=?", (contact,)).fetchone()
             return dict(json.loads(row[0])) if row else {}
 
-    def offer(self) -> str | None:
+    def offer(self, skip: str | None = None) -> str | None:
         now = datetime.now(IST)
         with closing(self.connect()) as db:
             occupied = {
@@ -78,7 +78,7 @@ class CRM:
             day = (now + timedelta(days=offset)).replace(minute=0, second=0, microsecond=0)
             for hour in (11, 15):
                 slot = day.replace(hour=hour).isoformat()
-                if slot not in occupied:
+                if slot != skip and slot not in occupied:
                     return slot
         return None
 
@@ -107,3 +107,15 @@ class CRM:
                 for slot, key in db.execute("SELECT slot, contact FROM bookings ORDER BY slot")
             ]
         return {"leads": leads, "bookings": bookings}
+
+    def cancel(self, contact: str, slot: str) -> None:
+        with closing(self.connect()) as db, db:
+            db.execute("DELETE FROM bookings WHERE contact=? AND slot=?", (contact, slot))
+
+    def move(self, contact: str, old: str, new: str) -> bool:
+        with closing(self.connect()) as db, db:
+            changed = db.execute(
+                "UPDATE OR IGNORE bookings SET slot=? WHERE contact=? AND slot=?",
+                (new, contact, old),
+            )
+            return changed.rowcount == 1

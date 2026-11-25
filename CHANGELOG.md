@@ -1,5 +1,7 @@
 # Changelog
 
+- Added explicit transactional booking cancellation and reschedule in the booking session.
+
 ## Core analysis · 26 November 2026
 
 - Added per-turn sentiment, schema-validated BANT and call reports, and the Insights panel.
