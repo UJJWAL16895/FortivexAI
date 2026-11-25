@@ -35,3 +35,5 @@ demo.example.com {
 ```
 
 [UNKNOWN] Public hosting and proxy authentication have not been deployed in this phase. Both Windows local and Docker remain the supported evaluation paths.
+
+The demo CRM uses SQLite and the Compose volume retains its fictional leads and appointment slots across restarts. The default native database is data/runtime/crm.sqlite3. Set CRM_PATH to an isolated file when running the browser smoke. Recent Insights reports are process-local. Protect the CRM and Insights routes together with the rest of the site before publishing a demo.

@@ -27,3 +27,6 @@
 | 6 | Save the completed pair, publish the profile and pending values | src/memory/session.py · LeadSession.remember; src/api/text_session.py · text_session |
 | Booking | Enter a contact, request a demo time, explicitly confirm or return later | src/crm/conversation.py · BookingSession.handle → src/crm/store.py · save, offer, book |
 | CRM view | Load persisted demo leads and booking receipts | src/api/app.py · crm_view → src/crm/store.py · snapshot |
+| After reply | Enqueue the turn with no wait for analysis | src/api/text_session.py · text_session → src/analytics/worker.py · Insights.submit |
+| End conversation | Close the socket and enqueue finalization | src/api/text_session.py · text_session → src/analytics/worker.py · Insights.work |
+| View insights | Read completed validated reports | src/api/app.py · insights_view → src/analytics/core.py · summarize_call |

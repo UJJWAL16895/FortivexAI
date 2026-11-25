@@ -4,6 +4,8 @@
 
 Code path: the microphone transcript reaches the same text socket and shared booking state. The cited answer, offer and receipt reach the browser speech queue as sentences. Gemini Live remains outside the main demo. No further latency tuning was performed.
 
+The Ubuntu run on the voice documentation tag exposed an unregistered competitor in the slot race fixture. Core-analysis main fixes the test setup and rejects unknown contact IDs cleanly. The tag preserves the verified browser run without rewriting release history.
+
 ## Voice hero quiz
 
 1. **Where does voice join text?** After transcription, the browser submits the same text socket frame.

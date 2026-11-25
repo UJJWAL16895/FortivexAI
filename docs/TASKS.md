@@ -4,6 +4,8 @@ Only advance after the current acceptance checks, report, learning log and commi
 
 At every phase boundary keep main runnable from a fresh checkout. Exercise README quickstart and align docs/SUBMISSION_CHECKLIST.md with current evidence. Map each acceptance test to a numbered PRD requirement and add five phase questions with answers to the learning log.
 
+Core brief checkpoints are recorded in STEP-007 through STEP-010. Park further voice-latency tuning after the accepted Hindi median from STEP-006. Protect the complete journey before adding webhook adapters, rescheduling or polish.
+
 | Gate | Deliverable and acceptance evidence |
 |---|---|
 | P0 · Foundation | Read STEP-001 for Windows Make/Python parity, keyless liveness, staged secret scanning, type checks, schema validation, architecture and limitations. |

@@ -11,8 +11,10 @@ def test_unique_slot_idempotent_confirmation_and_reopen(tmp_path):
     assert a == "asha@example.com" and b == "+919876543210"
     assert store.save(a, {"name": "Asha"}) is False
     assert store.save(a, {"store_count": 3}) is True
+    assert store.save(b, {"name": "Ravi"}) is False
     slot = store.offer()
     assert slot
+    assert store.book("unregistered@example.test", slot) is False
     with ThreadPoolExecutor(2) as pool:
         receipts = list(pool.map(lambda contact: store.book(contact, slot), [a, b]))
     assert sum(receipts) == 1

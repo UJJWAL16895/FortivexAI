@@ -3,6 +3,24 @@ info:
   title: ShelfPilot Sales Agent
   version: 0.1.0
 paths:
+  /api/insights:
+    get:
+      summary: Insights View
+      operationId: insights_view_api_insights_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  anyOf:
+                  - type: integer
+                  - items:
+                      $ref: '#/components/schemas/CallAnalysis'
+                    type: array
+                type: object
+                title: Response Insights View Api Insights Get
   /api/crm:
     get:
       summary: Crm View
@@ -95,6 +113,57 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
+    CallAnalysis:
+      properties:
+        score:
+          type: integer
+          maximum: 100.0
+          minimum: 0.0
+          title: Score
+        rating:
+          type: string
+          enum:
+          - Hot
+          - Warm
+          - Cold
+          title: Rating
+        reasons:
+          items:
+            type: string
+          type: array
+          title: Reasons
+        sentiment:
+          items:
+            type: string
+            enum:
+            - Positive
+            - Neutral
+            - Negative
+          type: array
+          title: Sentiment
+        booked:
+          type: boolean
+          title: Booked
+        summary:
+          type: string
+          title: Summary
+        next_action:
+          type: string
+          title: Next Action
+        follow_up_draft:
+          type: string
+          title: Follow Up Draft
+      type: object
+      required:
+      - score
+      - rating
+      - reasons
+      - sentiment
+      - booked
+      - summary
+      - next_action
+      - follow_up_draft
+      title: CallAnalysis
     HTTPValidationError:
       properties:
         detail:

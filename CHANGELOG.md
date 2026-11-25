@@ -1,5 +1,10 @@
 # Changelog
 
+## Core analysis · 26 November 2026
+
+- Added per-turn sentiment, schema-validated BANT and call reports, and the Insights panel.
+- Fixed the competing-lead test fixture and made unknown contact claims fail cleanly.
+
 ## Voice hero · 26 November 2026
 
 - Verified the cited question, booking offer and confirmation through the synthetic browser microphone path.

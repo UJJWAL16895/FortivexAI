@@ -28,6 +28,8 @@ function App() {
   const [lead, setLead] = useState(null)
   const [crm, setCRM] = useState(null)
   const [crmError, setCRMError] = useState('')
+  const [insights, setInsights] = useState(null)
+  const [insightsError, setInsightsError] = useState('')
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
   const [connection, setConnection] = useState(0)
   const socket = useRef(null)
@@ -279,12 +281,36 @@ function App() {
                   setCRM(await response.json())
                 } catch { setCRMError('CRM unavailable.') }
               }}>View demo CRM</button>
+              <button className="suggestion" disabled={pending || mic !== 'idle' || status !== 'Connected'}
+                onClick={() => socket.current.send(JSON.stringify({ text: 'End conversation', end_call: true }))}>End conversation</button>
+              <button className="suggestion" onClick={async () => {
+                setInsightsError('')
+                try {
+                  const response = await fetch('/api/insights')
+                  if (!response.ok) throw Error('Insights unavailable.')
+                  setInsights(await response.json())
+                } catch { setInsightsError('Insights unavailable.') }
+              }}>View insights</button>
               {crmError && <p role="alert">{crmError}</p>}
+              {insightsError && <p role="alert">{insightsError}</p>}
               {crm && <section aria-label="Demo CRM">
                 <h3>Demo CRM</h3>
                 <p>{crm.leads.length} leads · {crm.bookings.length} bookings</p>
                 <ul>{crm.leads.map(item => <li key={item.contact}>{item.name || item.contact}{item.company ? ' · ' + item.company : ''}</li>)}</ul>
                 <ul>{crm.bookings.map(item => <li key={item.slot}>{item.contact} · {item.label}</li>)}</ul>
+              </section>}
+              {insights && <section aria-label="Call insights">
+                <h3>Call insights</h3>
+                <p>{insights.calls.length} recent calls · {insights.calls.filter(call => call.booked).length} booked</p>
+                {insights.dropped_jobs > 0 && <p>{insights.dropped_jobs} analysis jobs skipped at capacity</p>}
+                {insights.calls.map((call, index) => <article key={index}>
+                  <h4>{call.rating} · {call.score}/100</h4>
+                  <p>{call.summary}</p>
+                  {call.reasons.length > 0 && <ul>{call.reasons.map(reason => <li key={reason}>{reason}</li>)}</ul>}
+                  <small>Sentiment by turn · {call.sentiment.join(' → ')}</small>
+                  <p>Next action · {call.next_action}</p>
+                  <p>Follow-up draft · {call.follow_up_draft}</p>
+                </article>)}
               </section>}
             </section>
           </aside>

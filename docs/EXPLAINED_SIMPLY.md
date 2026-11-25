@@ -72,7 +72,8 @@ Browser <-- audio clip ---- FastAPI     (bundled clips play locally)
 |---|---|
 | Typed and push-to-talk turns, keyless voice, live text, English/Hindi microphone setting | Automatic turn detection, full barge-in and robust multilingual conversation |
 | Warm local/cloud STT fallback, first-output stage timing, guarded model output | Larger speech quality dataset, latency target under normal load and useful grounded facts |
-| Four-turn memory, lead profile, spoken confirmation, exact safe phrase playback and optional live TTS | Recall across connections, document retrieval, booking, CRM and post-call insights |
+| Four-turn memory, persistent fictional CRM leads, spoken confirmation, exact safe phrase playback and optional live TTS | Verified customer identity, production retention and durable analytics jobs |
+| Cited document answers, confirmed booking and recent call insights | Broader corpus evaluation, human follow-up delivery and production analysis validation |
 | Verification, Docker and HTTPS deployment guidance | Verified public deployment and production scale |
 
 ## Numbers you can defend
@@ -124,4 +125,8 @@ The voice hero ran the same journey with three synthetic microphone inputs on 26
 
 Think of a short stack of reviewed index cards. Each has a topic, two answers in English and Hindi, and a source label. The app looks for a clear topic match first. With the optional local multilingual model, it can also compare the meaning of a question with each card. It reads the selected answer directly and shows the citation. If the match is weak, it offers a specialist follow-up. A reviewer-approved digest prevents an edited file from entering this path.
 
-On 26 November 2026 the authored twenty-question evaluation found 14/15 expected sources with embeddings and 12/15 with aliases alone. Both correctly abstained on 5/5 unsupported questions. Larger held-out accuracy is **NOT MEASURED**. Grounded answers are built. Booking and CRM are the next gate.
+On 26 November 2026 the authored twenty-question evaluation found 14/15 expected sources with embeddings and 12/15 with aliases alone. Both correctly abstained on 5/5 unsupported questions. Larger held-out accuracy is **NOT MEASURED**.
+
+## Core analysis update
+
+After the reply is sent, the backend drops the buyer turn on a small work queue. A worker checks simple sentiment words and explicit BANT signals. BANT means budget, authority, need and timeline. Think of four boxes a sales rep can tick when the buyer gives evidence. When the call ends, the worker creates a checked report with the score, reasons, sentiment by turn, next action and a draft. The insights panel shows completed calls. The report is a demo heuristic, and population accuracy is **NOT MEASURED**. Recent reports live in memory and disappear on restart. The follow-up is a draft for a person to review.

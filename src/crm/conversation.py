@@ -12,6 +12,7 @@ class BookingSession:
         self.crm = crm
         self.contact: str | None = None
         self.slot: str | None = None
+        self.booked = False
 
     def handle(self, text: str, lead: LeadSession) -> str | None:
         raw = re.sub(r"^(?:my (?:email|phone) is|contact)\s+", "", text.strip(), flags=re.I)
@@ -35,6 +36,7 @@ class BookingSession:
             if not self.contact or not self.slot:
                 return "There is no pending demo time. Say book a demo first."
             if self.crm.book(self.contact, self.slot):
+                self.booked = True
                 return f"Demo booked for {label_slot(self.slot)}."
             self.slot = None
             return "That time is no longer available. Say book a demo for another time."

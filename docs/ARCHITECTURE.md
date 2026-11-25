@@ -27,6 +27,8 @@ The voice-latency phase adds a warm optional CPU transcriber before the cloud fa
 
 P3-lite adds one LeadSession to each text socket. It holds four recent completed turns and a separate lead profile. Pending counts and dates are read back locally before being committed. An ordinary live turn passes the recent dialogue as Gemini user/model messages. A context turn bypasses the shared cache. The profile and history last for the connection, and there are no P3 workers or persistent records. See STEP-006.
 
+The current hero uses reviewed RAG cards and SQLite. A booking request offers an available time, explicit confirmation attempts the unique slot insert, and a reconnect with the fictional contact restores the lead. The browser displays citation provenance, booking state and recent Insights. A bounded background queue validates sentiment and BANT results after the reply. Exporting or sending follow-ups is outside this demo flow.
+
 [ASSUMED] The following diagrams describe the proposed system. Implementation and validation gates are in TASKS.md.
 
 ## System

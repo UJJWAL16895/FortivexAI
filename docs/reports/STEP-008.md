@@ -4,6 +4,7 @@ The sequence is a cited Growth price, fictional email, time offer, explicit “C
 
 - [VERIFIED] Windows verification reported `34 passed in 4.62s` with clean Ruff, formatting, mypy and secret scan.
 - [VERIFIED] Chrome printed `Text hero: citation, timezone, one booking, one CRM lead, returning caller verified.`
+- [VERIFIED] The text checkpoint passed Windows and Ubuntu CI. [Text hero CI](https://github.com/UJJWAL16895/FortivexAI/actions/runs/45706960691)
 - [VERIFIED] Two concurrent SQLite claims for one slot left one owner. Confirmation replay by that owner returned the same receipt with one persisted booking. Reopening the SQLite file preserved the lead.
 - One demo CRM database stores fictional contact keys. Appointment offers use India time (IST, UTC+05:30). The console reads the demo CRM over HTTP. This endpoint requires an authenticated deployment perimeter and synthetic data. A contact key does not establish identity.
 

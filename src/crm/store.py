@@ -86,7 +86,9 @@ class CRM:
             return False
         with closing(self.connect()) as db, db:
             db.execute(
-                "INSERT INTO bookings VALUES (?, ?) ON CONFLICT(slot) DO NOTHING", (slot, contact)
+                "INSERT INTO bookings SELECT ?, contact FROM leads WHERE contact=? "
+                "ON CONFLICT(slot) DO NOTHING",
+                (slot, contact),
             )
             owner = db.execute("SELECT contact FROM bookings WHERE slot=?", (slot,)).fetchone()
             return bool(owner and owner[0] == contact)

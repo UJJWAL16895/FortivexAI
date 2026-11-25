@@ -56,7 +56,11 @@ try {
   else await typed('How much does Growth cost?', '2,499')
   await page.waitForFunction(() => [...document.querySelectorAll('.message small')]
     .some(el => el.textContent.includes('plans-and-prices.json#growth')))
-  await typed('My name is Asha.', voiceFolder ? 'follow' : 'inventory')
+  const replies = await page.$$eval('.message.agent p', items => items.length)
+  await page.type('#message', 'My name is Asha.')
+  await page.keyboard.press('Enter')
+  await page.waitForFunction(count => document.querySelectorAll('.message.agent p').length > count &&
+    document.querySelector('[aria-label="Lead profile"]')?.textContent.includes('Asha'), {}, replies)
   await typed('My email is ' + contact, 'saved the demo contact')
   if (voiceFolder) {
     await spoken('UTC+05:30')
@@ -79,6 +83,18 @@ try {
   await page.waitForSelector('.connected')
   await typed(contact, 'Welcome back, Asha')
   console.log((voiceFolder ? 'Voice' : 'Text') + ' hero: citation, timezone, one booking, one CRM lead, returning caller verified.')
+  if (process.env.CHECK_HERO_INSIGHTS === '1') {
+    await page.evaluate(() => [...document.querySelectorAll('button')]
+      .find(el => el.textContent === 'End conversation').click())
+    await lastReply('Conversation ended')
+    await page.waitForFunction(async () => (await (await fetch('/api/insights')).json()).calls.some(call => call.booked))
+    await page.evaluate(() => [...document.querySelectorAll('button')]
+      .find(el => el.textContent === 'View insights').click())
+    await page.waitForFunction(() => document.querySelector('[aria-label="Call insights"]')
+      ?.textContent.includes('Follow-up draft'))
+    if (errors.length) throw Error('Unexpected browser exception in the insights flow')
+    console.log('Insights panel: completed booking count, report and follow-up draft verified.')
+  }
 } finally {
   await browser.close()
 }

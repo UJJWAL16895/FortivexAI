@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ConfigDict, StringConstraints, ValidationError
 
+from src.analytics.worker import Call, Insights
 from src.core.settings import Settings
 from src.crm.conversation import BookingSession
 from src.llm.reply import ReplyPath
@@ -16,6 +17,7 @@ class TextTurn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
     simulate_failure: bool = False
+    end_call: bool = False
 
 
 async def text_session(socket: WebSocket) -> None:
@@ -32,6 +34,8 @@ async def text_session(socket: WebSocket) -> None:
     knowledge: Knowledge = socket.app.state.knowledge
     session = LeadSession()
     booking = BookingSession(socket.app.state.crm)
+    insights: Insights = socket.app.state.insights
+    call = Call()
     await socket.accept()
     try:
         await socket.send_json(
@@ -56,6 +60,17 @@ async def text_session(socket: WebSocket) -> None:
             if turn.simulate_failure and not settings.allow_fallback_demo:
                 await socket.send_json({"type": "error", "text": "Fallback demo is disabled."})
                 continue
+            if turn.end_call:
+                await socket.send_json(
+                    {
+                        "type": "reply",
+                        "text": "Conversation ended. Review the call in Insights.",
+                        "mode": "session",
+                        "latency_ms": None,
+                    }
+                )
+                await socket.close()
+                return
             booking_reply = (
                 await asyncio.to_thread(booking.handle, turn.text, session)
                 if not turn.simulate_failure
@@ -115,6 +130,9 @@ async def text_session(socket: WebSocket) -> None:
                     mode="json", exclude_none=True, exclude={"language"}
                 )
                 await asyncio.to_thread(booking.crm.save, booking.contact, fields)
+            if not turn.simulate_failure:
+                call.booked = booking.booked
+                insights.submit(call, turn.text)
             await socket.send_json(
                 {
                     "type": "profile",
@@ -126,3 +144,5 @@ async def text_session(socket: WebSocket) -> None:
             )
     except WebSocketDisconnect:
         return
+    finally:
+        insights.submit(call, None)

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Literal
 
@@ -11,6 +11,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from src.analytics.core import CallAnalysis
+from src.analytics.worker import Insights
 from src.api.text_session import text_session
 from src.api.voice import router as voice_router
 from src.core.settings import Settings
@@ -47,13 +49,27 @@ def create_app() -> FastAPI:
             app.state.voice_budget = RequestBudget(
                 settings.gemini_rpm, settings.gemini_daily, settings.gemini_tpm
             )
-            yield
+            insights: Insights = app.state.insights
+            worker = asyncio.create_task(insights.work())
+            try:
+                yield
+            finally:
+                await insights.jobs.join()
+                worker.cancel()
+                with suppress(asyncio.CancelledError):
+                    await worker
 
     app = FastAPI(title="ShelfPilot Sales Agent", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.replies = ReplyPath(settings)
     app.state.knowledge = Knowledge.load()
     app.state.crm = CRM(Path(settings.crm_path))
+    app.state.insights = Insights()
+
+    @app.get("/api/insights")
+    async def insights_view() -> dict[str, int | list[CallAnalysis]]:
+        insights: Insights = app.state.insights
+        return {"calls": list(insights.recent), "dropped_jobs": insights.dropped}
 
     @app.get("/api/crm")
     async def crm_view() -> dict[str, list[dict[str, object]]]:

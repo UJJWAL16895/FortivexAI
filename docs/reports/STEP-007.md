@@ -17,4 +17,6 @@ FastEmbed runs multilingual MiniLM locally. The app compares cosine scores again
 
 The first test failed because the retrieval module did not exist. Tests now exercise supported and unsupported pricing, an invented 40% discount, Hindi/Hinglish, modified reviewed bytes, and injection in an unapproved document. The socket regression compares the speech sentence with the cited reply. The selected card is read directly. No source content becomes a model instruction, and admission checks reviewed SHA-256 digests. A reviewer who approves malicious content can still defeat that admission boundary.
 
+[VERIFIED] Windows verification reported `32 passed in 4.93s` and Windows and Ubuntu CI passed for the P4 commit. The scripted demo prints the fictional currency amount, with a Unicode escape when the host terminal cannot represent the rupee character. [P4 CI](https://github.com/UJJWAL16895/FortivexAI/actions/runs/45706505685)
+
 Install with setup --knowledge-model and set KNOWLEDGE_EMBEDDINGS=true. Use `python -m scripts.evaluate_knowledge --embeddings` in the venv to reproduce. Core-only and Docker demos use the reviewed alias search. [FastEmbed documentation](https://qdrant.tech/documentation/embeddings/fastembed/)

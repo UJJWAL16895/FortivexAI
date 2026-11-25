@@ -1,5 +1,13 @@
 # Learning log
 
+## Core analysis quiz
+
+1. **When is analysis submitted?** After the reply. A queue lets the socket hand off work immediately.
+2. **What is a BANT signal?** A buyer statement that gives evidence about budget, authority, need or timeline.
+3. **What checks the data shape?** Pydantic schemas validate each turn and the completed call.
+4. **When does the report appear?** When the socket ends and the worker reaches its finalization job.
+5. **What happens to a draft follow-up?** The console displays it for a person to review. The app sends nothing.
+
 The voice checkpoint reuses the text path after transcription. Its five-question quiz and run details are in STEP-009.
 
 ## Text hero quiz
