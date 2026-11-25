@@ -48,7 +48,7 @@ Browser <-- audio clip ---- FastAPI     (bundled clips play locally)
 | Fallback chain | An ordered list of backups. If one ride is cancelled, try the next available ride. |
 | Rate limiting | A cap on work over time. It is like a ticket dispenser issuing a limited number per minute. |
 | Caching | Reuse an earlier answer for the same safe input. Think of keeping a copy instead of going back to the printer. |
-| Idempotency | Repeating the same action leaves the same result. Pressing a lift button twice requests one lift. Booking still needs this. |
+| Idempotency | Repeating the same action leaves the same result. Pressing a lift button twice requests one lift. Confirming the offered slot twice returns one booking. |
 | Hallucination | A model confidently gives a made-up detail. It is like a draft writer guessing a price. |
 | Guardrail | Code controls what can leave the system. It acts like a checklist at the door. The current door accepts only reviewed sentences. |
 
@@ -89,7 +89,7 @@ Measured on 26 November 2026 using Chrome with synthetic microphone input on the
 
 ## 60-second pitch
 
-Retail software reps spend time answering similar first questions. ShelfPilot handles the early conversation. The browser records a short turn, and the server uses a local or cloud transcriber. The app reads back counts and dates before saving them in the current lead profile. FastAPI streams checked reply sentences. If it lacks evidence for a product claim, it offers to check with a person. The same console runs with a deterministic mock. The next steps are cited product knowledge and transactional booking.
+Retail software reps spend time answering similar first questions. ShelfPilot handles the early conversation. The browser records a short turn and the server transcribes it. The agent shows the reviewed source of each product answer, or offers to check with a specialist. It books an explicitly confirmed time and records the fictional lead in SQLite. When the call ends, the operator can read a summary and a follow-up draft in Insights. The same console has a keyless text demo.
 
 ## 3-minute walkthrough
 
@@ -97,7 +97,7 @@ Retail software reps spend time answering similar first questions. ShelfPilot ha
 2. Open CODE_MAP.md. Trace the mic button to WAV encoding, then to transcribe_audio. Show the two-provider loop and how both engines receive the same WAV.
 3. Follow the transcript into text_session. Show the pending value, confirm it, and ask what the agent remembers. Open LeadSession and show the four-turn deque. Then trace an ordinary turn through ReplyPath.stream and the A/B fallback.
 4. Open claims.py and the invented-discount test. Show that the unsafe stub never reaches the transcript or audio. Point to the phrase splitter and playback queue.
-5. Show the benchmark and define the timing markers. Mention that synthetic quiet input and a few samples do not predict production throughput. Finish by describing the next memory and retrieval gates.
+5. Ask for a Growth price, open the citation, explicitly confirm a booking and open the CRM view. End the call and open Insights. Name the limits of the small speech and retrieval samples.
 
 ## 15 interview questions
 
