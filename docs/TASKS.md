@@ -32,3 +32,7 @@ Core brief checkpoints are recorded in STEP-007 through STEP-010. Park further v
 [ASSUMED] Use identical consented or synthetic English and Hindi inputs for both STT engines and identical TTS scripts for both synthesizers. Include a price, date and store name. Summarize latency, actual errors, quick transcript or pronunciation checks and sample limits in one table. P5 adds streaming, barge-in and browser-measured first audio. Mark missing measurements [UNKNOWN].
 
 Capture dated official free-tier terms for each cloud candidate and check actual project access. Local STT has hardware costs. edge-tts is an **unofficial demo-only dependency** that connects to the Edge online service. Treat its availability and production terms as unverified. Keep Gemini Live outside the main demo path. [edge-tts source](https://github.com/rany2/edge-tts) · [faster-whisper source](https://github.com/SYSTRAN/faster-whisper)
+
+## Release handoff
+
+[VERIFIED] Main carries the completed core journey, persistence, multilingual fixtures, reliability checks, terminal and browser demos, showcase, selected booking/export depth and public deployment preparation. STEP-011 through STEP-018 record evidence. Open acceptance items and optional depth deferrals are tracked in PRD.md and OPEN_QUESTIONS.md. The deployment runbook leaves account-side work with the operator.

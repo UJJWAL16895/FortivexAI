@@ -9,3 +9,7 @@ The mock text load test ran client and one Uvicorn server on the Windows Ryzen 7
 3. **What replaces SQLite at scale?** A Postgres primary for writes and read replicas for reports.
 4. **What replaces local CPU speech?** Warm GPU workers or managed streaming STT.
 5. **What funds the paid scenario?** An explicit usage rate and a platform fee, subject to pilot validation.
+
+## Scratch live-coding verification
+
+[VERIFIED] On the isolated codex/interview-rehearsal clone, scripts/rehearse.py reported PASS and restored each edit. The ten checks printed memory/session.py:24 and :51, analytics/core.py:78 and :8, crm/store.py:79, knowledge/faq.json:12 plus the approval hash, core/settings.py:26, api/app.py:81, llm/reply.py:26 and rag/index.py:19. These line numbers refer to the scratch base. Git reported no diff after restoration and pytest returned 41 passed in 7.30s. Each edit had a focused check. The full suite ran after restoring all changes. The language exercise changed an alias, not an entire language, and the sentiment exercise checked the schema, not the classifier.

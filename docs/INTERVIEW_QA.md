@@ -1,6 +1,6 @@
 # Interview questions
 
-1. **How do you launch locally?** Use README setup and run, then open localhost:8000.
+1. **How do you launch locally?** Use README setup and run, then open localhost:8000/console.
 2. **What does the mock guarantee?** Predictable, keyless demo turns.
 3. **Why one app?** One origin serves React, HTTP and WebSockets.
 4. **What moves over WebSocket?** Text frames, provider state, sentences and profile updates.
@@ -47,3 +47,7 @@
 - **What is mocked?** Keyless STT, preset audio and unsupported general replies. Booking, SQLite and approved retrieval execute in the demo.
 - **What is unmeasured?** Real conversion, production voice capacity and held-out corpus accuracy.
 - **What would you improve?** Validate streaming STT, tenant identity and durable job recovery before live customer data.
+
+- **Can anyone use live quota on the public link?** Mock is the default. Public live requires explicit flags, an evaluator code and the provider configuration. Limits are per process.
+- **Can this host retain the call dashboard?** Local SQLite and the Docker volume can. Render Free uses an ephemeral filesystem.
+- **Can the lead cancel from another session?** The demo supports changes within the session that owns the reservation. Verified contact authorization across sessions needs a production identity system.

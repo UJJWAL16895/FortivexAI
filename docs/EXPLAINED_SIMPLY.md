@@ -12,7 +12,7 @@ ShelfPilot is a prototype inbound voice agent for a fictional retail inventory s
 
 | Step | Input → output | Where to look | What can fail |
 |---|---|---|---|
-| Capture | Microphone sound → recording chunks | frontend/src/main.jsx, toggleMic | The browser can deny permission or lack a mic. |
+| Capture | Microphone sound → recording chunks | frontend/src/Console.jsx, toggleMic | The browser can deny permission or lack a mic. |
 | End the turn | Stop click or timer → finished recording | toggleMic and frontend/src/voice.js, toWav | The buyer can stop early or leave a long silence. An energy check estimates the tail after speech. |
 | Transcribe | Mono 16 kHz WAV → text | src/api/voice.py, transcribe_audio; src/voice/local.py, recognize; src/voice/gemini.py, transcribe | A model can mishear a number. A local model may be missing or a cloud request can fail. |
 | Reply | Text → a readback, recalled detail, or checked model reply | src/api/text_session.py, text_session; src/memory/session.py, LeadSession.handle; src/llm/reply.py, ReplyPath.stream | A provider can fail. An unclear number requires confirmation. |
@@ -68,14 +68,14 @@ Browser <-- audio clip ---- FastAPI     (bundled clips play locally)
 | One server for UI and backend | One URL and one start command. A public release must protect that entry point. |
 | Mock mode | Predictable rehearsal without credentials. Its transcript and replies are scripted. |
 | Sentence-level TTS | The first approved sentence can play while more text arrives. We wait for safe sentence boundaries and queue clips in order. |
-| Strict claims check | It prevents made-up claims from reaching either screen or speaker. The assistant has fewer possible replies until retrieval lands. |
+| Strict claims check | It prevents made-up claims from reaching either screen or speaker. This limits open-ended replies. Product answers use the reviewed cards. |
 
 ## Built and still to build
 
 | Built | Still to build |
 |---|---|
 | Typed and push-to-talk turns, keyless voice, live text, English/Hindi microphone setting | Automatic turn detection, full barge-in and robust multilingual conversation |
-| Warm local/cloud STT fallback, first-output stage timing, guarded model output | Larger speech quality dataset, latency target under normal load and useful grounded facts |
+| Warm local/cloud STT fallback, first-output stage timing, guarded model output | Larger speech quality dataset, latency target under normal load and a broader knowledge corpus |
 | Four-turn memory, persistent fictional CRM leads, spoken confirmation, exact safe phrase playback and optional live TTS | Verified customer identity, production retention and durable analytics jobs |
 | Cited document answers, confirmed booking and recent call insights | Broader corpus evaluation, human follow-up delivery and production analysis validation |
 | Verification, Docker and HTTPS deployment guidance | Verified public deployment and production scale |
@@ -89,7 +89,7 @@ Measured on 26 November 2026 using Chrome with synthetic microphone input on the
 - “Cloud transcription was the biggest delay in the original browser run. I moved it to my laptop and measured the same fixture again. The reply model was the largest remaining wait in those three English runs.”
 - “Base heard ‘free stores’ in three trials. Small heard ‘three stores’ in all three. I also added voice readback and an affirmative confirmation before saving a count.”
 - “Gemini Live returned audio quickly in a probe. It would speak before our text guard could check its claims, so I kept it out of the shipped turn.”
-- “I can offer a human follow-up in the demo. Sending a message is a later integration. Lead details last for one connection.”
+- “I can offer a human follow-up in the demo. Sending a message is a later integration. The short dialogue lasts for one connection. Confirmed CRM details can be recalled by contact.”
 
 ## 60-second pitch
 
@@ -140,3 +140,7 @@ A booking can be cancelled or moved within the session that reserved it. The ser
 After the reply is sent, the backend drops the buyer turn on a small work queue. A worker checks simple sentiment words and explicit BANT signals. BANT means budget, authority, need and timeline. Think of four boxes a sales rep can tick when the buyer gives evidence. When the call ends, the worker creates a checked report with the score, reasons, sentiment by turn, next action and a draft. The insights panel shows completed calls. The report is a demo heuristic, and population accuracy is **NOT MEASURED**. SQLite keeps completed reports across restarts. The follow-up is a draft for a person to review.
 
 **Public preview.** The default hosted setup uses scripted answers and no provider quota. Optional real replies require an evaluator code. A single server keeps a short request tally. It starts fresh on restart.
+
+## Final rehearsal
+
+The clean Windows copy passed 46 tests. Its live-mode browser run booked and saved a fictional lead with synthetic microphone audio. Three separate general prompts reached Gemini A. The reviewed-phrase filter used the policy reply for each of those prompts. Be clear about which path generated a given reply. The audit report has the command output.

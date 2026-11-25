@@ -55,3 +55,5 @@
 - Recorded authenticated provider probes, architecture, latency budget, demo release tags and evidence gates. Moved a minimal grounded booking and CRM workflow ahead of voice integration.
 
 - Added a mock-default public preview with an opt-in evaluator gate, request caps and a hosted deployment checklist.
+
+- Audited release claims against application behavior and documented fresh-clone, browser and secret-scan evidence.

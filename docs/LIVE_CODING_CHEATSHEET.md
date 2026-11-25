@@ -18,3 +18,5 @@ Showcase edits: change the hero heading in frontend/src/Showcase.jsx, add a feat
 | RAG miss | src/rag/index.py:19 | Inspect the threshold and check abstention. |
 
 The locale rehearsal exercises a language variant only. A production locale also needs STT and TTS support, localized answers and voice fixtures.
+
+Evidence: [STEP-014 scratch run](reports/STEP-014.md). It ran ten focused checks, restored edits and passed the full suite on the restored branch. The knowledge rehearsal adjusted an alias and approval hash in an existing file. The sentiment rehearsal proved schema acceptance of a new label. To test a new classification rule or a full new locale, extend fixture coverage before shipping.

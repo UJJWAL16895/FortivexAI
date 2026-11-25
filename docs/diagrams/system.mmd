@@ -1,14 +1,14 @@
 flowchart LR
-    Browser["Browser · React console"] -->|"HTTP voice upload"| Speech["FastAPI speech routes"]
-    Speech -->|"PCM WAV"| STT["Local Whisper / Gemini STT / mock"]
-    Browser <-->|"WebSocket turns / replies"| API["FastAPI turn handler"]
-    API --> Memory["Socket memory and readback"]
-    API --> Knowledge["Reviewed cards / local MiniLM"]
-    API --> Gemini["Guarded Gemini A → B → mock"]
-    API --> CRM["Explicit booking + CRM"]
-    API --> Queue["Post-reply analysis queue"]
-    Queue --> Reports["Validated SQLite reports"]
-    CRM --> DB["SQLite lead and slot tables"]
-    Browser -->|"Approved sentence"| TTS["Bundled audio / Edge / Gemini / browser"]
-    Browser -->|"HTTP snapshots"| DB
-    Browser -->|"HTTP insights"| Reports
+    B["React browser: console and scripted showcase"] <-->|"Text turns and sentence events over WebSocket"| S["FastAPI text session"]
+    B -->|"Bounded WAV over HTTP"| V["FastAPI speech routes"]
+    V --> STT["Whisper Small or Gemini, scripted in mock"]
+    S --> M["Four-turn window and confirmed profile"]
+    S --> K["Reviewed bilingual cards and optional MiniLM"]
+    S --> L["Guarded Gemini A → B → mock"]
+    S --> C["Explicit booking and contact recall"]
+    S --> Q["Bounded analysis queue"]
+    C --> DB[("SQLite")]
+    Q --> DB
+    B -->|"CRM and Insights HTTP reads"| API["FastAPI snapshots"]
+    API --> DB
+    B -->|"Approved sentences"| T["Bundled audio or speech synthesis"]

@@ -135,3 +135,7 @@ Read src/memory/session.py and src/memory/details.py. History is like a small de
 ### STEP-018 · Public preview
 
 The access code works like a desk pass. The server creates a temporary cookie, and the browser brings that cookie when it opens the API or socket. A per-peer and shared tally limits work inside that server process. Read src/core/public.py and test_public.py. Exercise: set the daily cap to two in a test and explain which message uses the second slot. The five-question quiz is in STEP-018.
+
+### STEP-019 · Release audit
+
+A clean clone checks whether the repo carries everything an evaluator needs. A synthetic Chrome mic checks the real capture path with a predictable sample. Each claim needs an artifact, output, official source or a scenario label. Read CLAIMS_AUDIT.md and STEP-019. Exercise: explain why the mock load test cannot predict the GPU speech fleet. The report contains five questions with answers.

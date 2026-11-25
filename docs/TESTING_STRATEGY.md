@@ -6,7 +6,7 @@ Subsequent gates add deterministic provider fixtures, database race and replay c
 
 Use only synthetic examples in Git. For every booking test inspect committed database state, not just assistant text. For fallback tests inject 429, 503, invalid output, early stream close, late audio after cancellation and a shared project cooldown.
 
-To reproduce the architecture syntax check, install the docs-only lock with `npm ci --prefix tools/diagrams`. Use an installed Chrome executable via a local Puppeteer JSON file containing executablePath. Create a temporary output directory and run the tool below. The thin-voice release renders five diagrams, including the current text and voice paths. The project keeps the Mermaid sources in Markdown.
+To reproduce the architecture syntax check, install the docs-only lock with `npm ci --prefix tools/diagrams`. Use an installed Chrome executable via a local Puppeteer JSON file containing executablePath. Create a temporary output directory and run the tool below. The current Markdown renders three diagrams covering system, sequence and data flow. The project keeps the Mermaid sources in Markdown.
 
 ```powershell
 & tools/diagrams/node_modules/.bin/mmdc.cmd -i docs/ARCHITECTURE.md -o "$env:TEMP/architecture.md" -p $browserConfigPath

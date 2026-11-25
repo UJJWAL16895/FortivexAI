@@ -15,7 +15,7 @@ $python = 'python'
 & .\.venv\Scripts\python.exe scripts/tasks.py run
 ```
 
-Open [the Sales Console](http://127.0.0.1:8000), wait for Connected and choose a suggested question or type your own. Stop the server with Ctrl+C. To run the scripted lead recall demo on an available port, use `& .\.venv\Scripts\python.exe scripts/tasks.py demo --port 0`. On macOS/Linux, use `python3.13 scripts/tasks.py setup` and the equivalent `.venv/bin/python` commands.
+Open [the Sales Console](http://127.0.0.1:8000/console), wait for Connected and choose a suggested question or type your own. Stop the server with Ctrl+C. To run the scripted hero demo on an available port, use `& .\.venv\Scripts\python.exe scripts/tasks.py demo --port 0`. On macOS/Linux, use `python3.13 scripts/tasks.py setup` and the equivalent `.venv/bin/python` commands.
 
 | Make command | Windows equivalent from the repository root |
 |---|---|

@@ -37,3 +37,25 @@ Each criterion is pass/fail. Planned test names below are evidence commitments, 
 | NFR-004 | 1,00,000-user scalability and infrastructure | Document demand math, runnable deployment and a load run with a measured bottleneck. | P12 load and deployment report |
 | NFR-005 | Commercial feasibility and operational cost | Present cost inputs with sources or explicit assumptions and a buyer ROI sensitivity model. | P12 business and cost review |
 | NFR-006 | Live coding and debugging | Rehearse a documented code change, repair a representative failure, run verification and answer phase quizzes. | Phase learning logs and P13 rehearsal |
+
+## Release acceptance status
+
+The table above records the original pass criteria. A partial result leaves the original criterion open.
+
+| ID | Observed status and proof |
+|---|---|
+| FR-001 | [VERIFIED] Keyless text socket test and scripted hero. |
+| FR-002 | Partial. Browser voice reaches playback. Continuous endpointing and full barge-in are open. |
+| FR-003 | Partial. Socket window and contact-key recall pass. Verified caller authorization is open. |
+| FR-004 | Partial. Integration fixtures switch English, Hindi and Roman Hinglish. Full automatic multilingual speech and equivalent Roman replies are unmeasured. |
+| FR-005 | Partial. Validated heuristic score and sentiment trend pass. Automatic handoff remains open. |
+| FR-006 | [VERIFIED] Reviewed citation, injection rejection and abstention tests. The authored set is reported in STEP-007. |
+| FR-007 | [VERIFIED] Slot collision, repeated confirmation, cancel replay, reschedule conflict and lead recall tests. |
+| FR-008 | [VERIFIED] Validated report and restart fixture for saved denominators. |
+| FR-009 | Partial. Synthetic Chrome voice hero is automated. A physical-mic pass and evaluator recording remain open. |
+| NFR-001 | [VERIFIED] Public source, fresh-checkout verification and current exported diagrams. |
+| NFR-002 | Partial. Measured samples exist. The original latency target is not met across both languages. |
+| NFR-003 | [VERIFIED] Origin, scan and fallback tests, plus reliability and public gate tests. |
+| NFR-004 | [VERIFIED] Demand math, loopback mock load report and local deployment. Fleet capacity is unmeasured. |
+| NFR-005 | [VERIFIED] Sourced input prices and labeled operating scenarios. Pilot adoption is unmeasured. |
+| NFR-006 | [VERIFIED] Controlled scratch edits and restoration, with scope in STEP-014. |

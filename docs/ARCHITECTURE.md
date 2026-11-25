@@ -1,56 +1,24 @@
 # Architecture
 
-Current exports show the running browser, FastAPI, CRM and persisted analysis flow. [System SVG](diagrams/system.svg) · [Sequence SVG](diagrams/sequence.svg) · [One-page PDF](diagrams/architecture.pdf)
-
-[VERIFIED] FastAPI serves the built React console. P2 streams text deltas and speakable sentences on /ws/text from Gemini A, Gemini B or the deterministic mock. The transcript is browser memory. See TEXT_PROTOCOL.md for frames and error behavior.
-
-```mermaid
-flowchart LR
-    UI["React console or script"] -->|"JSON WebSocket turn"| API["FastAPI text session"]
-    API -->|"Validated 1–500 character message"| MOCK["Gemini A, Gemini B or mock"]
-    MOCK --> API
-    API -->|"Reply and compute time"| UI
-```
-
-## Current thin voice path
-
-```mermaid
-flowchart LR
-    MIC["Browser microphone and explicit Stop"] --> WAV["12-second capture to mono PCM WAV"]
-    WAV --> STT["HTTP transcription: Gemini or mock"]
-    STT --> TURN["Text socket: deltas and sentences"]
-    TURN --> TTS["Sentence playback: Edge, Gemini, browser or mock audio"]
-    TTS --> AUDIO["Browser output"]
-```
-
-The separate synthesis request can start as soon as the first sentence arrives. The browser plays phrases in order. Screens show the configured capture notice, actual reply provenance, transcription provider and stop-to-playback time. The transport holds short recordings in memory.
-
-The voice-latency phase adds a warm optional CPU transcriber before the cloud fallback on the demo laptop. Candidate model sentences pass an exact reviewed list before text or speech delivery. Known safe English clips play from bundled assets. See CODE_MAP.md for the current call path and STEP-005 for stage timing.
-
-P3-lite adds one LeadSession to each text socket. It holds four recent completed turns and a separate lead profile. Pending counts and dates are read back locally before being committed. An ordinary live turn passes the recent dialogue as Gemini user/model messages. A context turn bypasses the shared cache. The profile and history last for the connection, and there are no P3 workers or persistent records. See STEP-006.
-
-The current hero uses reviewed RAG cards and SQLite. A booking request offers an available time, explicit confirmation attempts the unique slot insert, and a reconnect with the fictional contact restores the lead. The browser displays citation provenance, booking state and recent Insights. A bounded background queue validates sentiment and BANT results after the reply. Exporting or sending follow-ups is outside this demo flow.
-
-[ASSUMED] The following diagrams describe the proposed system. Implementation and validation gates are in TASKS.md.
+[VERIFIED] These diagrams describe the shipped application. [System SVG](diagrams/system.svg) · [Sequence SVG](diagrams/sequence.svg) · [One-page PDF](diagrams/architecture.pdf)
 
 ## System
 
 ```mermaid
 flowchart LR
-    B["React client: mic, transcript, playback"] <-->|Audio and events| G["FastAPI session gateway"]
-    G --> S["Endpointing and STT"]
-    S --> T["Turn coordinator"]
-    T <--> R["RAG and cited chunks"]
-    T --> L["LLM adapter: Gemini A, Gemini B, mock"]
-    L --> Y["Sentence buffer and TTS"]
-    Y --> G
-    T --> K["Availability, booking, CRM"]
-    K --> D[("SQLite")]
-    T --> Q["Background work queue"]
-    Q --> W["Analysis and post-call workers"]
-    W --> D
-    D --> I["CRM and insights API"]
-    I --> B
+    B["React browser: console and scripted showcase"] <-->|"Text turns and sentence events over WebSocket"| S["FastAPI text session"]
+    B -->|"Bounded WAV over HTTP"| V["FastAPI speech routes"]
+    V --> STT["Whisper Small or Gemini, scripted in mock"]
+    S --> M["Four-turn window and confirmed profile"]
+    S --> K["Reviewed bilingual cards and optional MiniLM"]
+    S --> L["Guarded Gemini A → B → mock"]
+    S --> C["Explicit booking and contact recall"]
+    S --> Q["Bounded analysis queue"]
+    C --> DB[("SQLite")]
+    Q --> DB
+    B -->|"CRM and Insights HTTP reads"| API["FastAPI snapshots"]
+    API --> DB
+    B -->|"Approved sentences"| T["Bundled audio or speech synthesis"]
 ```
 
 ## Per-turn sequence
@@ -58,59 +26,58 @@ flowchart LR
 ```mermaid
 sequenceDiagram
     participant B as Browser
-    participant G as Gateway
-    participant T as Turn coordinator
-    participant M as Memory and retrieval
-    participant L as Gemini chain
-    participant A as Analysis worker
-    participant K as Booking store
-    B->>G: Audio frames and turn ID
-    G->>T: Endpoint and final transcript
-    T->>M: Read committed profile, recent turns and evidence
-    T--)A: Enqueue extraction, scoring and sentiment
-    T->>L: Bounded prompt and cited evidence
-    opt Explicitly confirmed booking
-        L-->>T: Proposed tool arguments
-        T->>K: Validate and commit with idempotency key
-        K-->>T: Committed receipt or slot conflict
+    participant V as Voice HTTP
+    participant S as Text WebSocket
+    participant K as Reviewed cards
+    participant D as SQLite
+    participant Q as Analysis queue
+    opt Push to talk
+      B->>V: WAV and language after Stop
+      V-->>B: Transcript or typed recovery request
     end
-    L-->>T: Text deltas
-    T-->>G: Speakable phrase or validated tool outcome
-    G-->>B: Audio chunks tagged with turn ID
-    A-->>M: Versioned profile and analysis update
-    opt Barge-in
-        B->>G: Interrupt and advance turn ID
-        G-->>T: Cancel prior generation and synthesis
+    B->>S: Transcript or typed text
+    alt Product question
+      S->>K: Find a reviewed answer
+      K-->>S: Exact answer and citation, or abstention
+    else Explicit booking confirmation
+      S->>D: Claim unique slot
+      D-->>S: Committed receipt or conflict
+    else General turn
+      Note over S: Read back details or stream checked Gemini/mock sentences
     end
+    S-->>B: Approved sentence and final data
+    opt Speech
+      B->>V: Request synthesis if no bundled clip
+      V-->>B: Clip or browser fallback
+    end
+    S--)Q: Submit analysis after reply
+    Q->>D: Persist validated report on call end
 ```
 
 ## Data flow
 
 ```mermaid
 flowchart TD
-    AUDIO["Mic frames"] --> STT["Ephemeral audio buffer and STT"]
-    STT --> TURN["Turn text and session ID"]
-    KB["Approved bilingual company documents"] --> IDX["Chunks, source IDs and embeddings"]
-    IDX --> PROMPT["Bounded prompt with citations"]
-    TURN --> PROMPT
-    PROMPT --> REPLY["Grounded reply or abstention"]
-    TURN --> ANALYSIS["Background analysis"]
-    ANALYSIS --> PROFILE["Versioned lead profile"]
-    REPLY --> PLAYER["TTS and browser playback"]
-    CONF["Explicit slot confirmation"] --> TX["Transactional booking and CRM upsert"]
-    TX --> SUMMARY["Post-call summary and aggregates"]
-    PROFILE --> SUMMARY
+    WAV["Transient audio"] --> TXT["Transcript"]
+    TXT --> TURN["Turn text and socket profile"]
+    CARDS["Reviewed bilingual files"] --> MATCH["Aliases and optional semantic matches"]
+    TURN --> MATCH
+    MATCH --> OUT["Exact answer with citation or abstention"]
+    TURN --> GUARD["General model output checked before delivery"]
+    OUT --> UI["Browser transcript and playback"]
+    GUARD --> UI
+    TURN --> CRM["Confirmed slot and contact → SQLite"]
+    TURN --> ANALYSIS["Derived sentiment and BANT → SQLite on call end"]
 ```
 
-| Component | Responsibility and technology | Failure handling | Scaling direction |
+| Component | Responsibility and technology | Failure handling | Scaling approach [ASSUMED] |
 |---|---|---|---|
-| Browser and gateway | React/Vite, FastAPI WebSocket, IDs and bounded buffers | Drop late audio, cancel by turn, expose reconnect status | Stateless gateways with sticky active streams |
-| STT and TTS | Compare Gemini and local faster-whisper for STT; Gemini and edge-tts for TTS | Configured mock, browser speech fallback, visible degraded mode | Pool warm workers and bound admission |
-| Turn and memory | Read sliding window, rolling summary and structured fields | Proceed using latest committed state; order updates by turn sequence | Redis session state, durable Postgres records |
-| Retrieval | Local multilingual embeddings and vector plus lexical search | Below threshold return abstention; retain source version | Independent retrieval workers and managed index |
-| LLM | Stream deltas; local caching, token and time budgets | Gemini A → Gemini B → deterministic mock; shared quota cooldown where applicable | Limit by project, model and tenant |
-| Booking and CRM | Validate tool args, timezone and consent; SQLite transaction | Unique slot constraint and request replay; webhook outbox | Postgres plus idempotent delivery workers |
-| Background analysis | Lead score, sentiment, profile extraction, rolling summary and post-call jobs | Bound queue; retry with deduplication; preserve pending status | Durable queue and independently scaled consumers |
-| Telemetry and dashboard | Per-stage timings, aggregates, provider status | Count errors and missing measurements explicitly | Structured metrics and tenant-filtered queries |
+| Browser and gateway | React/Vite, FastAPI WebSocket and HTTP audio uploads | Cancel active generation on disconnect. Text stays available if mic fails. | Keep affinity on active sockets and move reconnectable state to Redis. |
+| STT and TTS | Push-to-talk WAV, optional local faster-whisper, Gemini, bundled speech, edge-tts and browser playback | Try configured STT backup, type on failure, keep transcript if audio fails. | Warm GPU or managed streaming STT and capacity-limited synthesis. |
+| Turn and memory | Four pairs in a socket and readback before committing numbers and dates | Ambiguous details remain pending. Contact recall is a separate SQLite operation. | Redis with expiry and tenant-scoped profile storage. |
+| Retrieval and LLM | Digest-reviewed bilingual cards, aliases, optional local similarity. Gemini A → B → mock for general replies. | Weak retrieval abstains. Time and provider budget limits plus checked sentences constrain output. | Managed tenant-filtered index, quota-aware routing and safe caching. |
+| Booking and CRM | Explicit confirmation, unique slot constraint, SQLite upsert | Conflict preserves the existing booking. Typed and recognized commands share the same path. | Authoritative Postgres writer, replicas for views. |
+| Analysis | Bounded post-reply queue and validated derived reports | Queue saturation may drop jobs. Completed reports persist in SQLite. | Durable jobs keyed by call ID and bounded workers. |
+| Public perimeter | Single-process optional HTTP and socket access code gate and quotas | Public default mock. Counters reset with the process. | Trusted proxy and distributed durable quotas before broad live traffic. |
 
-OpenAI is optional after a successful bounded credit probe and explicit fallback configuration. With current credit exhausted the standard chain is A → B → mock. Tool proposals and retrieved documents are untrusted inputs. The server owns booking authorization and generates the spoken confirmation from committed state.
+See [Code map](CODE_MAP.md), [Scaling](SCALABILITY.md) and [Public deployment](DEPLOY_STEPS.md). OpenAI remains outside the active chain. Gemini Live is a documented probe. Browser audio is uploaded over HTTP after Stop or the recording cap.

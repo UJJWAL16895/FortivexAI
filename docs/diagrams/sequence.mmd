@@ -2,24 +2,27 @@ sequenceDiagram
     participant B as Browser
     participant V as Voice HTTP
     participant S as Text WebSocket
-    participant R as Reviewed retrieval
+    participant K as Reviewed cards
     participant D as SQLite
-    participant Q as Analysis worker
-    opt Voice input
-      B->>V: Validated WAV and language hint
-      V-->>B: Transcript or typed recovery
+    participant Q as Analysis queue
+    opt Push to talk
+      B->>V: WAV and language after Stop
+      V-->>B: Transcript or typed recovery request
     end
-    B->>S: Question
-    S->>R: Find an approved card
-    R-->>S: Exact answer and citation or abstention
-    S-->>B: Sentence and cited reply
-    opt Voice playback
-      B->>V: Synthesize approved sentence if needed
-      V-->>B: Audio or browser fallback
+    B->>S: Transcript or typed text
+    alt Product question
+      S->>K: Find a reviewed answer
+      K-->>S: Exact answer and citation, or abstention
+    else Explicit booking confirmation
+      S->>D: Claim unique slot
+      D-->>S: Committed receipt or conflict
+    else General turn
+      Note over S: Read back details or stream checked Gemini/mock sentences
     end
-    B->>S: Contact, demo request and explicit confirmation
-    S->>D: Claim unique slot
-    D-->>S: Committed booking or conflict
-    S-->>B: Receipt
-    S--)Q: Completed turns and finalization
-    Q->>D: Save validated call report
+    S-->>B: Approved sentence and final data
+    opt Speech
+      B->>V: Request synthesis if no bundled clip
+      V-->>B: Clip or browser fallback
+    end
+    S--)Q: Submit analysis after reply
+    Q->>D: Persist validated report on call end
