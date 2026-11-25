@@ -10,7 +10,19 @@ from src.llm.claims import HINDI
 from src.memory.details import MISHEARD_STORES, store_count, target_date
 
 IST = timezone(timedelta(hours=5, minutes=30))
-AFFIRM = {"yes", "yes correct", "correct", "that's right", "confirm", "हाँ", "हां", "सही है"}
+AFFIRM = {
+    "yes",
+    "yes correct",
+    "correct",
+    "that's right",
+    "confirm",
+    "हाँ",
+    "हां",
+    "सही है",
+    "haan",
+    "han",
+    "sahi hai",
+}
 REJECT = {"no", "wrong", "incorrect", "नहीं", "गलत"}
 RECALL = re.compile(r"\b(?:remember|what did i say|what did i tell)\b|याद", re.I)
 

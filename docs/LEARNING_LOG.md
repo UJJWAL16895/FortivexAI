@@ -1,5 +1,13 @@
 # Learning log
 
+## Multilingual quiz
+
+1. **Is Roman Hindi detected as a complete language?** The demo recognizes a small set of patterns and uses English wording for the tested Roman query.
+2. **Can a session switch scripts?** Yes. The test keeps one socket open and checks all three styles.
+3. **How do two phone scripts match?** Unicode decimal digits are normalized to ASCII before storage.
+4. **What happens on “kal”?** No date is guessed.
+5. **What still needs a manual change in voice mode?** Set the microphone language hint when switching.
+
 ## Persistence quiz
 
 1. **Where is a report stored?** In SQLite, in the call_reports table.

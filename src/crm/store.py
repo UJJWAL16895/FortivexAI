@@ -3,6 +3,7 @@
 import json
 import re
 import sqlite3
+import unicodedata
 from contextlib import closing
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -16,8 +17,8 @@ def normalize_contact(raw: str) -> str | None:
     value = raw.strip().casefold()
     if len(value) <= 160 and EMAIL.fullmatch(value):
         return value
-    if re.fullmatch(r"\+?[0-9() -]+", value):
-        phone = re.sub(r"\D", "", value)
+    if re.fullmatch(r"\+?[\d() -]+", value):
+        phone = "".join(str(unicodedata.decimal(char)) for char in value if char.isdecimal())
         if 10 <= len(phone) <= 15:
             return "+" + (("91" + phone) if len(phone) == 10 else phone)
     return None

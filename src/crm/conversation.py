@@ -15,7 +15,12 @@ class BookingSession:
         self.booked = False
 
     def handle(self, text: str, lead: LeadSession) -> str | None:
-        raw = re.sub(r"^(?:my (?:email|phone) is|contact)\s+", "", text.strip(), flags=re.I)
+        raw = re.sub(
+            r"^(?:my (?:email|phone) is|contact|मेरा (?:फ़ोन|फोन|नंबर)|mera (?:phone|number))\s+",
+            "",
+            text.strip(),
+            flags=re.I,
+        )
         contact = normalize_contact(raw)
         if contact:
             if self.contact and self.contact != contact:
