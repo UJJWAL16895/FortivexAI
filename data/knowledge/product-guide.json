@@ -1,0 +1,51 @@
+[
+  {
+    "id": "multi-store",
+    "title": "Product guide",
+    "kind": "product",
+    "aliases": [
+      "multi store",
+      "multiple stores",
+      "multiple outlets",
+      "branches",
+      "multi location",
+      "outlets",
+      "कई दुकानें",
+      "अलग दुकानों",
+      "stores manage",
+      "dukaan"
+    ],
+    "en": "ShelfPilot shows stock from multiple stores in one dashboard.",
+    "hi": "ShelfPilot एक डैशबोर्ड में कई दुकानों का स्टॉक दिखाता है।"
+  },
+  {
+    "id": "barcode",
+    "title": "Product guide",
+    "kind": "product",
+    "aliases": [
+      "barcode",
+      "barcodes",
+      "scanning labels",
+      "scan item labels",
+      "बारकोड",
+      "लेबल स्कैन"
+    ],
+    "en": "ShelfPilot supports USB barcode scanners that act like a keyboard.",
+    "hi": "ShelfPilot कीबोर्ड की तरह काम करने वाले USB बारकोड स्कैनर का समर्थन करता है।"
+  },
+  {
+    "id": "alerts",
+    "title": "Product guide",
+    "kind": "product",
+    "aliases": [
+      "low stock",
+      "reorder alert",
+      "stock running low",
+      "stock alerts",
+      "कम स्टॉक",
+      "stock kam"
+    ],
+    "en": "ShelfPilot sends a low-stock alert when an item reaches its configured reorder level.",
+    "hi": "स्टॉक तय सीमा तक पहुँचने पर ShelfPilot कम स्टॉक का अलर्ट भेजता है।"
+  }
+]

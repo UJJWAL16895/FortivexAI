@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { createPlayback, toWav, transcribe } from './voice.js'
 import './styles.css'
 
-const prompts = ['How do I manage multiple stores?', 'How much does it cost?', 'Can I see a demo?']
+const prompts = ['How does the multi-store dashboard work?', 'How much does Growth cost?', 'Can I see a demo?']
 const initialMessage = {
   role: 'agent',
   text: 'Hi, I’m the ShelfPilot demo agent. What would you like to know about managing inventory across your stores?',
@@ -66,7 +66,7 @@ function App() {
         if (event.status === 'active') {
           setProvider(event.model)
           replyMode.current = event.provider === 'mock' ? 'mock' : 'live'
-          if (!['policy', 'session'].includes(event.provider)) setMode(replyMode.current)
+          if (!['policy', 'session', 'knowledge'].includes(event.provider)) setMode(replyMode.current)
         }
         return
       }
@@ -92,6 +92,7 @@ function App() {
         role: event.type === 'error' ? 'notice' : 'agent',
         text: event.text,
         mode: event.mode,
+        citation: event.citation,
       }])
       setPartial('')
       if (event.type === 'reply') setLatency(event.latency_ms)
@@ -210,10 +211,11 @@ function App() {
           <section className="panel chat" aria-labelledby="transcript-title">
             <div className="panel-header"><h2 id="transcript-title">Transcript</h2><span className={status === 'Connected' ? 'connected' : ''} role="status">{status}</span></div>
             <div className="transcript" role="log" aria-label="Transcript messages" ref={transcript}>
-              {messages.map(({ role, text, mode: replyMode }, index) => (
+              {messages.map(({ role, text, mode: replyMode, citation }, index) => (
                 <div className={`message ${role}`} key={index}>
                   <span>{role === 'buyer' ? 'You' : role === 'notice' ? 'Session' : 'ShelfPilot'}{replyMode && ` · ${replyMode.toUpperCase()}`}</span>
                   <p>{text}</p>
+                  {citation && <small>Source · {citation.title} · {citation.source}#{citation.id}</small>}
                 </div>
               ))}
               {partial && <div className="message agent"><span>ShelfPilot · {mode.toUpperCase()}</span><p>{partial}</p></div>}

@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -13,6 +15,7 @@ from src.api.text_session import text_session
 from src.api.voice import router as voice_router
 from src.core.settings import Settings
 from src.llm.reply import ReplyPath, RequestBudget
+from src.rag.index import Knowledge
 from src.voice.local import warm
 
 
@@ -26,6 +29,15 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        if settings.knowledge_embeddings:
+            try:
+                knowledge = Knowledge.load()
+                await asyncio.to_thread(knowledge.enable_embeddings)
+                app.state.knowledge = knowledge
+            except Exception:
+                logging.getLogger("uvicorn.error").warning(
+                    "Local embeddings unavailable. Using reviewed keyword retrieval."
+                )
         if settings.agent_mode == "live" and settings.voice_stt == "local":
             await warm()
         async with httpx.AsyncClient(timeout=12, trust_env=False) as client:
@@ -39,6 +51,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="ShelfPilot Sales Agent", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.replies = ReplyPath(settings)
+    app.state.knowledge = Knowledge.load()
 
     @app.get("/health", response_model=Health, operation_id="getHealth")
     async def health() -> Health:

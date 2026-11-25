@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     voice_tts: Literal["edge", "gemini", "browser"] = "edge"
     voice_stt: Literal["local", "gemini"] = "gemini"
     whisper_en_model: Literal["base", "small"] = "small"
+    knowledge_embeddings: bool = False
 
     @model_validator(mode="after")
     def validate_live_config(self) -> Self:

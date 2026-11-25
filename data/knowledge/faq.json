@@ -1,0 +1,31 @@
+[
+  {
+    "id": "import",
+    "title": "FAQ",
+    "kind": "faq",
+    "aliases": [
+      "csv",
+      "spreadsheet import",
+      "import existing catalog",
+      "bulk upload items",
+      "एक्सेल",
+      "csv upload"
+    ],
+    "en": "Existing items can be imported from a CSV file using the catalog template.",
+    "hi": "मौजूदा आइटम कैटलॉग टेम्पलेट के साथ CSV से आयात किए जा सकते हैं।"
+  },
+  {
+    "id": "trial",
+    "title": "FAQ",
+    "kind": "faq",
+    "aliases": [
+      "trial",
+      "free trial",
+      "try before paying",
+      "ट्रायल",
+      "आजमाकर"
+    ],
+    "en": "ShelfPilot offers a 14-day trial with no payment card required.",
+    "hi": "ShelfPilot में 14 दिन का ट्रायल है और भुगतान कार्ड की जरूरत नहीं है।"
+  }
+]

@@ -19,6 +19,7 @@
 | 1 | Submit the typed message | frontend/src/main.jsx · send |
 | 2 | Validate the frame and check the current lead session | src/api/text_session.py · text_session → src/memory/session.py · LeadSession.handle |
 | 2a | Parse count/date, ask for confirmation or recall existing details | src/memory/details.py · store_count and target_date; src/memory/session.py · ConfirmableDetails.spoken |
+| 2b | Find a reviewed product card, cite it or abstain | src/rag/index.py · Knowledge.load and Knowledge.lookup; frontend/src/main.jsx renders citation |
 | 3 | Handle unsupported claims, or try Gemini A → B → mock with recent turns | src/llm/reply.py · ReplyPath.stream and _live; src/llm/claims.py · follow_up |
 | 4 | Read provider SSE and split the draft | src/llm/gemini.py · stream_gemini; src/llm/sentences.py · SentenceBuffer.push |
 | 5 | Display approved sentences and final provenance | frontend/src/main.jsx · client.onmessage inside App |

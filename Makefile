@@ -8,10 +8,11 @@ endif
 
 PORT ?= 8000
 VOICE_MODELS ?= 0
+KNOWLEDGE_MODEL ?= 0
 
 .PHONY: setup verify scan run demo
 setup:
-	$(BOOTSTRAP) scripts/tasks.py setup $(if $(filter 1,$(VOICE_MODELS)),--voice-models)
+	$(BOOTSTRAP) scripts/tasks.py setup $(if $(filter 1,$(VOICE_MODELS)),--voice-models) $(if $(filter 1,$(KNOWLEDGE_MODEL)),--knowledge-model)
 
 verify scan:
 	$(VENV_PY) scripts/tasks.py $@

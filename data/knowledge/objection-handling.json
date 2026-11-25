@@ -1,0 +1,31 @@
+[
+  {
+    "id": "internet",
+    "title": "Objection handling",
+    "kind": "product",
+    "aliases": [
+      "internet goes down",
+      "offline",
+      "internet drops",
+      "बिना इंटरनेट",
+      "नेट नहीं"
+    ],
+    "en": "ShelfPilot needs an internet connection to sync stock across stores.",
+    "hi": "दुकानों के बीच स्टॉक सिंक करने के लिए ShelfPilot को इंटरनेट चाहिए।"
+  },
+  {
+    "id": "support",
+    "title": "Objection handling",
+    "kind": "faq",
+    "aliases": [
+      "onboarding",
+      "onboarding help",
+      "setup help",
+      "training",
+      "सेटअप मदद",
+      "शुरुआत में मदद"
+    ],
+    "en": "Growth includes a remote onboarding session to help import the first catalog.",
+    "hi": "ग्रोथ में पहला कैटलॉग आयात करने के लिए ऑनलाइन सेटअप सत्र शामिल है।"
+  }
+]

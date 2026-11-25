@@ -26,9 +26,16 @@ def main() -> None:
         action="store_true",
         help="Install and download both CPU STT models with setup",
     )
+    parser.add_argument(
+        "--knowledge-model",
+        action="store_true",
+        help="Install the local multilingual retrieval model with setup",
+    )
     args = parser.parse_args()
     if args.voice_models and args.task != "setup":
         parser.error("--voice-models applies to setup")
+    if args.knowledge_model and args.task != "setup":
+        parser.error("--knowledge-model applies to setup")
     if args.task == "setup":
         if sys.version_info[:2] != (3, 13):
             parser.error("Use Python 3.13 for the verified dependency lock.")
@@ -45,6 +52,11 @@ def main() -> None:
             print(
                 "Local Whisper is optional. Use setup --voice-models to install and download Base and Small."
             )
+        if args.knowledge_model:
+            run(PYTHON, "-m", "pip", "install", "-r", "requirements-rag.lock")
+            run(PYTHON, "-m", "scripts.setup_knowledge")
+        else:
+            print("Use setup --knowledge-model to enable optional multilingual vector matching.")
         for directory in (
             "src/voice",
             "src/llm",

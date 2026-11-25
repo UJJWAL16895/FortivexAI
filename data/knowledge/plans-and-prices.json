@@ -1,0 +1,45 @@
+[
+  {
+    "id": "starter",
+    "title": "Plans and prices",
+    "kind": "pricing",
+    "aliases": [
+      "starter",
+      "starter plan",
+      "starter price",
+      "starter ka price",
+      "स्टार्टर"
+    ],
+    "en": "Starter costs ₹999 per month for one store, before GST.",
+    "hi": "स्टार्टर की कीमत एक दुकान के लिए ₹999 प्रति माह है, जीएसटी अलग है।"
+  },
+  {
+    "id": "growth",
+    "title": "Plans and prices",
+    "kind": "pricing",
+    "aliases": [
+      "growth",
+      "growth plan",
+      "growth costs",
+      "growth kitne",
+      "ग्रोथ"
+    ],
+    "en": "Growth costs ₹2,499 per month for up to five stores, before GST.",
+    "hi": "ग्रोथ की कीमत पाँच दुकानों तक के लिए ₹2,499 प्रति माह है, जीएसटी अलग है।"
+  },
+  {
+    "id": "annual",
+    "title": "Plans and prices",
+    "kind": "discount",
+    "aliases": [
+      "annual",
+      "annual discount",
+      "yearly billing",
+      "yearly plan",
+      "सालाना",
+      "वार्षिक"
+    ],
+    "en": "Annual prepayment gives a 10% discount on Starter or Growth.",
+    "hi": "स्टार्टर या ग्रोथ का सालाना अग्रिम भुगतान करने पर 10% छूट मिलती है।"
+  }
+]

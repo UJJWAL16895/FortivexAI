@@ -1,5 +1,13 @@
 # Learning log
 
+## P4 quiz
+
+1. **What is a chunk?** One short, reviewed answer card with an ID, a topic and bilingual wording.
+2. **Where do prices come from?** The selected pricing card. Gemini does not write the price answer.
+3. **How does the optional local model help?** It compares meaning when the question uses different words.
+4. **What happens on a weak match?** The app offers specialist follow-up without citing a card.
+5. **What happens if a document changes?** The digest no longer matches, so the app skips that file until review.
+
 ## P0 · Configuration and trust boundaries
 
 A credential can authenticate a model listing while generation still fails. STEP-000 demonstrates that distinction with a successful OpenAI listing followed by exhausted generation credit. This makes a real completion probe essential for choosing a live provider.

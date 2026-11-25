@@ -1,5 +1,10 @@
 # Changelog
 
+## P4 · 26 November 2026
+
+- Added bilingual reviewed knowledge, optional local multilingual retrieval, transcript citations and explicit abstention.
+- Added a twenty-question evaluation and price, discount and document-injection regressions.
+
 ## P3-lite · 26 November 2026
 
 - Added socket-scoped history and a structured lead profile with explicit count and date confirmation.

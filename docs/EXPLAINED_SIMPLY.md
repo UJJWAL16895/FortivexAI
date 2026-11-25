@@ -115,3 +115,9 @@ Retail software reps spend time answering similar first questions. ShelfPilot ha
 13. **Where does memory live?** Four completed pairs and the lead profile live on one server socket. Counts and dates are pending until yes. The browser shows the profile.
 14. **How would you scale?** Measure active sockets, queue delay and provider quota first, then isolate workers and use durable data services.
 15. **What can you change live?** Edit one reviewed sentence or mock branch, update its expectation and run verification.
+
+## P4 update · The answer can show its source
+
+Think of a short stack of reviewed index cards. Each has a topic, two answers in English and Hindi, and a source label. The app looks for a clear topic match first. With the optional local multilingual model, it can also compare the meaning of a question with each card. It reads the selected answer directly and shows the citation. If the match is weak, it offers a specialist follow-up. A reviewer-approved digest prevents an edited file from entering this path.
+
+On 26 November 2026 the authored twenty-question evaluation found 14/15 expected sources with embeddings and 12/15 with aliases alone. Both correctly abstained on 5/5 unsupported questions. Larger held-out accuracy is **NOT MEASURED**. Grounded answers are built. Booking and CRM are the next gate.

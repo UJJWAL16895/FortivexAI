@@ -12,18 +12,18 @@ def test_mock_text_turn_and_recovery(monkeypatch, tmp_path):
         assert socket.receive_json()["type"] == "error"
         socket.send_json({"text": "  "})
         assert socket.receive_json()["type"] == "error"
-        socket.send_json({"text": "How do I manage multiple stores?"})
+        socket.send_json({"text": "Tell me more."})
         events = []
         while (reply := socket.receive_json())["type"] not in {"reply", "error"}:
             events.append(reply["type"])
         assert "delta" in events and "sentence" in events
         assert reply["type"] == "reply"
-        assert "locations" in reply["text"]
+        assert "inventory" in reply["text"]
         assert reply["latency_ms"] >= 0
         socket.send_json({"text": "What does it cost?"})
         while (reply := socket.receive_json())["type"] not in {"reply", "error"}:
             pass
-        assert "human follow-up" in reply["text"]
+        assert "specialist follow up" in reply["text"] and reply["citation"] is None
 
 
 def test_socket_keeps_confirmation_and_recall_local_to_one_connection(monkeypatch, tmp_path):

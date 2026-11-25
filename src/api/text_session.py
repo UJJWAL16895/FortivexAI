@@ -1,3 +1,4 @@
+import asyncio
 import json
 from typing import Annotated
 
@@ -7,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, StringConstraints, ValidationError
 from src.core.settings import Settings
 from src.llm.reply import ReplyPath
 from src.memory.session import LeadSession
+from src.rag.index import Knowledge
 
 
 class TextTurn(BaseModel):
@@ -26,6 +28,7 @@ async def text_session(socket: WebSocket) -> None:
 
     settings: Settings = socket.app.state.settings
     replies: ReplyPath = socket.app.state.replies
+    knowledge: Knowledge = socket.app.state.knowledge
     session = LeadSession()
     await socket.accept()
     try:
@@ -52,26 +55,40 @@ async def text_session(socket: WebSocket) -> None:
                 await socket.send_json({"type": "error", "text": "Fallback demo is disabled."})
                 continue
             local_reply = session.handle(turn.text) if not turn.simulate_failure else None
-            if local_reply is not None:
+            answer = (
+                await asyncio.to_thread(knowledge.lookup, turn.text)
+                if local_reply is None and not turn.simulate_failure
+                else None
+            )
+            if local_reply is not None or answer is not None:
+                label = "session" if answer is None else "knowledge"
+                text = answer.text if answer else local_reply
+                citation = (
+                    {"id": answer.chunk.id, "title": answer.chunk.title, "source": answer.source}
+                    if answer and answer.chunk
+                    else None
+                )
                 await socket.send_json(
                     {
                         "type": "provider",
-                        "provider": "session",
-                        "model": "Lead session",
+                        "provider": label,
+                        "model": "Lead session" if answer is None else "ShelfPilot knowledge",
                         "status": "active",
                     }
                 )
-                await socket.send_json({"type": "sentence", "text": local_reply})
+                await socket.send_json({"type": "sentence", "text": text})
                 await socket.send_json(
                     {
                         "type": "reply",
-                        "text": local_reply,
-                        "provider": "session",
-                        "mode": "session",
+                        "text": text,
+                        "provider": label,
+                        "mode": label,
+                        "citation": citation,
                         "latency_ms": None,
                     }
                 )
-                session.remember(turn.text, local_reply)
+                assert text is not None
+                session.remember(turn.text, text)
             else:
                 async for event in replies.stream(
                     turn.text, simulate=turn.simulate_failure, history=tuple(session.history)

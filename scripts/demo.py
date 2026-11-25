@@ -5,6 +5,7 @@ import asyncio
 import json
 import os
 import socket
+import sys
 from contextlib import closing
 
 from uvicorn import Config, Server
@@ -39,7 +40,7 @@ async def demo(port: int) -> None:
                         ),
                         ("yes", "confirmed"),
                         ("What do you remember?", "Cedar Retail"),
-                        ("How much does it cost?", "human follow-up"),
+                        ("How much does Growth cost?", "2,499"),
                         ("Can I see a demo?", "demo"),
                     ):
                         await ws.send(json.dumps({"text": prompt}))
@@ -58,6 +59,7 @@ async def demo(port: int) -> None:
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(errors="backslashreplace")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=0)
     args = parser.parse_args()

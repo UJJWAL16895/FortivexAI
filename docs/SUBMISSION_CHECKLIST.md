@@ -1,4 +1,4 @@
-# Submission checklist · P3-lite
+# Submission checklist · P4
 
 Update this page every phase. A candidate release must run from a fresh checkout and its documentation must describe the actual behavior. Future items remain visible to the evaluator.
 
@@ -7,7 +7,7 @@ Update this page every phase. A candidate release must run from a fresh checkout
 | Repository link and access | [VERIFIED] Public source repository. Record the checkpoint and fresh-checkout commands for each release. [FortivexAI](https://github.com/UJJWAL16895/FortivexAI) |
 | Source code | [VERIFIED] React console, FastAPI, mock provider, runnable verification and pinned dependencies. See the directory guide. |
 | Architecture diagram | [VERIFIED] Current text path and future system, sequence and data-flow designs are in ARCHITECTURE.md. |
-| Working demo | [VERIFIED] Keyless text recall and live microphone readback, confirmed profile, bounded context, missing-model fallback and the claims gate. See STEP-006. Retrieved product answers, booking and CRM are scheduled for the text hero. |
+| Working demo | [VERIFIED] Keyless text recall, voice readback and cited fictional answers with abstention. STEP-007 records the multilingual retrieval evaluation. Booking and CRM are next. |
 | Business problem and feasibility | [ASSUMED] Initial segment, pilot design and ROI model documented in BUSINESS_CASE.md. |
 | Scalability to 1,00,000 users | [ASSUMED] Workload math and migration plan in SCALABILITY.md. Load evidence comes at P12. |
 | Security and data handling | [VERIFIED] Local same-origin browser check, bounded input and staged secrets gate. Planned production controls and open questions in SECURITY.md. |

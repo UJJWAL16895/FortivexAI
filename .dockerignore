@@ -8,6 +8,9 @@
 !src/
 !src/**/*.py
 !src/*.py
+!data/
+!data/knowledge/
+!data/knowledge/*.json
 **/__pycache__/
 **/*.pyc
 **/.env*

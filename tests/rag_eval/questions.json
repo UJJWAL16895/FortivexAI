@@ -1,0 +1,82 @@
+[
+  [
+    "How does your multi-store dashboard work?",
+    "multi-store"
+  ],
+  [
+    "कई दुकानों का स्टॉक एक साथ कैसे दिखता है?",
+    "multi-store"
+  ],
+  [
+    "Will my handheld barcode reader work?",
+    "barcode"
+  ],
+  [
+    "बारकोड से आइटम स्कैन कर सकते हैं?",
+    "barcode"
+  ],
+  [
+    "Can I get a warning when stock is running low?",
+    "alerts"
+  ],
+  [
+    "Starter ka price kya hai?",
+    "starter"
+  ],
+  [
+    "एक दुकान के लिए स्टार्टर की कीमत क्या है?",
+    "starter"
+  ],
+  [
+    "How much does Growth cost?",
+    "growth"
+  ],
+  [
+    "Growth kitne ka hai?",
+    "growth"
+  ],
+  [
+    "Is there a discount for annual payment?",
+    "annual"
+  ],
+  [
+    "सालाना भुगतान की छूट क्या है?",
+    "annual"
+  ],
+  [
+    "Can I upload my current item spreadsheet as CSV?",
+    "import"
+  ],
+  [
+    "Can I try before paying?",
+    "trial"
+  ],
+  [
+    "Does the app work without an internet connection?",
+    "internet"
+  ],
+  [
+    "How do you train new staff during onboarding?",
+    "support"
+  ],
+  [
+    "Do I get a 40% annual discount?",
+    null
+  ],
+  [
+    "Do you have a student discount?",
+    null
+  ],
+  [
+    "How much is the Enterprise plan?",
+    null
+  ],
+  [
+    "Does it integrate with Shopify?",
+    null
+  ],
+  [
+    "What is the refund policy?",
+    null
+  ]
+]

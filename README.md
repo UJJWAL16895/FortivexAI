@@ -35,6 +35,8 @@ For optional local CPU transcription, add `--voice-models` to the setup command 
 
 Try “My name is Asha. I work at Cedar Retail. We have three stores.” The assistant reads back the count. Reply “yes,” then ask “What do you remember?” The profile and the last four turns belong to the open conversation. [P3-lite report](docs/reports/STEP-006.md)
 
+Ask “How much does Growth cost?” for a cited fictional price, or ask for an undocumented discount to see abstention. The offline quickstart includes the reviewed knowledge cards. For multilingual semantic matching, use setup --knowledge-model (Make equivalent `make setup KNOWLEDGE_MODEL=1`) and set KNOWLEDGE_EMBEDDINGS=true before restart. [Retrieval evidence](docs/reports/STEP-007.md)
+
 Mock mode is the default. Copy .env.example to .env only for a new configuration. Never replace a populated file. The server reads the local file at startup. Keep its real values out of chat, Git, cloud sync, client bundles and screenshots. This project's OneDrive location requires checking your local sync settings. See SECURITY.md for the scope of the scanner.
 
 ## Read the evidence

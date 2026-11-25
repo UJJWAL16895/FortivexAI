@@ -12,6 +12,7 @@ WORKDIR /app
 COPY requirements.lock .
 RUN pip install --no-cache-dir -r requirements.lock && pip check
 COPY src/ src/
+COPY data/knowledge/ data/knowledge/
 COPY --from=frontend /ui/dist/ frontend/dist/
 USER 65532:65532
 EXPOSE 8000
