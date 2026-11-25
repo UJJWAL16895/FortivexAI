@@ -1,5 +1,13 @@
 # Learning log
 
+## Persistence quiz
+
+1. **Where is a report stored?** In SQLite, in the call_reports table.
+2. **What is saved for each turn?** Its derived sentiment label in the report, with the raw text left out.
+3. **What is the booking rate?** Booked analyzed calls divided by all successfully saved analyzed calls.
+4. **Does opening an empty socket count?** No. It produces no analyzed turn.
+5. **Does the 50-report panel cap limit the denominator?** No. The SQL count queries all saved reports.
+
 ## Core analysis quiz
 
 1. **When is analysis submitted?** After the reply. A queue lets the socket hand off work immediately.

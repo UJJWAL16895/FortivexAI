@@ -13,14 +13,7 @@ paths:
           content:
             application/json:
               schema:
-                additionalProperties:
-                  anyOf:
-                  - type: integer
-                  - items:
-                      $ref: '#/components/schemas/CallAnalysis'
-                    type: array
-                type: object
-                title: Response Insights View Api Insights Get
+                $ref: '#/components/schemas/Dashboard'
   /api/crm:
     get:
       summary: Crm View
@@ -164,6 +157,24 @@ components:
       - next_action
       - follow_up_draft
       title: CallAnalysis
+    Dashboard:
+      properties:
+        calls:
+          items:
+            $ref: '#/components/schemas/CallAnalysis'
+          type: array
+          title: Calls
+        totals:
+          $ref: '#/components/schemas/Totals'
+        dropped_jobs:
+          type: integer
+          title: Dropped Jobs
+      type: object
+      required:
+      - calls
+      - totals
+      - dropped_jobs
+      title: Dashboard
     HTTPValidationError:
       properties:
         detail:
@@ -201,6 +212,23 @@ components:
       required:
       - text
       title: SpeechRequest
+    Totals:
+      properties:
+        calls:
+          type: integer
+          title: Calls
+        booked_calls:
+          type: integer
+          title: Booked Calls
+        booking_rate:
+          type: number
+          title: Booking Rate
+      type: object
+      required:
+      - calls
+      - booked_calls
+      - booking_rate
+      title: Totals
     Transcript:
       properties:
         text:

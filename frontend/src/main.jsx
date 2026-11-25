@@ -301,7 +301,7 @@ function App() {
               </section>}
               {insights && <section aria-label="Call insights">
                 <h3>Call insights</h3>
-                <p>{insights.calls.length} recent calls · {insights.calls.filter(call => call.booked).length} booked</p>
+                <p>{insights.totals.booked_calls} of {insights.totals.calls} analyzed calls booked · {(insights.totals.booking_rate * 100).toFixed(0)}%</p>
                 {insights.dropped_jobs > 0 && <p>{insights.dropped_jobs} analysis jobs skipped at capacity</p>}
                 {insights.calls.map((call, index) => <article key={index}>
                   <h4>{call.rating} · {call.score}/100</h4>
