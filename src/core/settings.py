@@ -28,9 +28,26 @@ class Settings(BaseSettings):
     whisper_en_model: Literal["base", "small"] = "small"
     knowledge_embeddings: bool = False
     crm_path: str = "data/runtime/crm.sqlite3"
+    public_demo: bool = False
+    public_live_enabled: bool = False
+    public_access_code: SecretStr | None = None
+    public_requests_per_minute: int = Field(default=20, ge=1, le=1000)
+    public_daily_request_cap: int = Field(default=250, ge=1, le=10000)
 
     @model_validator(mode="after")
     def validate_live_config(self) -> Self:
+        if self.public_demo:
+            self.voice_stt = "gemini"
+            self.knowledge_embeddings = False
+            self.allow_fallback_demo = False
+            if not self.public_live_enabled:
+                self.agent_mode = "mock"
+            if self.agent_mode == "live":
+                access = (
+                    self.public_access_code.get_secret_value() if self.public_access_code else ""
+                )
+                if not 16 <= len(access.encode()) <= 256:
+                    raise ValueError("Public live mode requires a strong PUBLIC_ACCESS_CODE")
         if self.agent_mode == "live":
             key = self.gemini_api_key.get_secret_value().strip() if self.gemini_api_key else ""
             if not key or key.startswith("replace_with_"):

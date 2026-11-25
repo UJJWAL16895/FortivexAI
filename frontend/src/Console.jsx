@@ -14,6 +14,9 @@ export default function App() {
   const [messages, setMessages] = useState([initialMessage])
   const [draft, setDraft] = useState('')
   const [status, setStatus] = useState('Connecting')
+  const [publicMode, setPublicMode] = useState(null)
+  const [accessCode, setAccessCode] = useState('')
+  const [accessError, setAccessError] = useState('')
   const [pending, setPending] = useState(false)
   const [latency, setLatency] = useState(null)
   const [mode, setMode] = useState('')
@@ -42,6 +45,10 @@ export default function App() {
   const playback = useRef(null)
   const replyMode = useRef('mock')
   const voiceSentAt = useRef(null)
+
+  useEffect(() => {
+    fetch('/api/public-status').then(response => response.json()).then(setPublicMode).catch(() => {})
+  }, [])
 
   useEffect(() => {
     const url = new URL('/ws/text', window.location.href)
@@ -223,6 +230,24 @@ export default function App() {
         <div className="brand"><span className="brand-mark" aria-hidden="true">▥</span><span>ShelfPilot<small>SALES CONSOLE</small></span></div>
         <span className="mode"><span aria-hidden="true" /> {mode ? mode.toUpperCase() : 'CONNECTING'}</span>
       </header>
+      {publicMode?.public && <aside className="public-mode">
+        <strong>Public preview · {publicMode.mode.toUpperCase()}</strong> Use fictional data.
+        {publicMode.locked && status !== 'Connected' && <form onSubmit={async event => {
+          event.preventDefault()
+          setAccessError('')
+          try {
+            const response = await fetch('/api/unlock', {method:'POST', body:accessCode})
+            if (!response.ok) throw Error(response.status === 429 ? 'Demo request limit reached.' : 'Access code rejected.')
+            setAccessCode('')
+            setConnection(value => value + 1)
+          } catch (error) { setAccessError(error.message || 'Unable to unlock.') }
+        }}>
+          <label htmlFor="public-code">Evaluator access code</label>
+          <input id="public-code" type="password" value={accessCode} maxLength={256} onChange={e => setAccessCode(e.target.value)} required/>
+          <button className="send">Unlock</button>
+          {accessError && <p role="alert">{accessError}</p>}
+        </form>}
+      </aside>}
       <main>
         <section className="intro">
           <p className="eyebrow">WORKSPACE / SALES DEMO</p>

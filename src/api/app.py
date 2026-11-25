@@ -16,6 +16,7 @@ from src.analytics.worker import Insights
 from src.api.text_session import text_session
 from src.api.voice import router as voice_router
 from src.core.logging import protect_server_logs
+from src.core.public import PublicGuard
 from src.core.settings import Settings
 from src.crm.store import CRM
 from src.llm.reply import ReplyPath, RequestBudget
@@ -34,6 +35,13 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        if settings.public_demo:
+            if not app.state.knowledge.records:
+                raise RuntimeError("Public startup failed: reviewed knowledge is empty")
+            logging.getLogger("uvicorn.error").info(
+                "Public startup self-check passed. Mode=%s; reviewed knowledge and SQLite ready.",
+                settings.agent_mode,
+            )
         if settings.knowledge_embeddings:
             try:
                 knowledge = Knowledge.load()
@@ -67,6 +75,22 @@ def create_app() -> FastAPI:
     app.state.knowledge = Knowledge.load()
     app.state.crm = CRM(Path(settings.crm_path))
     app.state.insights = Insights(ReportStore(Path(settings.crm_path)))
+    if settings.public_demo:
+        access_code = settings.public_access_code
+        app.add_middleware(
+            PublicGuard,
+            access_code=access_code.get_secret_value() if access_code else "",
+            rpm=settings.public_requests_per_minute,
+            daily=settings.public_daily_request_cap,
+        )
+
+    @app.get("/api/public-status")
+    async def public_status() -> dict[str, bool | Literal["mock", "live"]]:
+        return {
+            "public": settings.public_demo,
+            "mode": settings.agent_mode,
+            "locked": bool(settings.public_demo and settings.public_access_code),
+        }
 
     @app.get("/api/insights")
     async def insights_view() -> Dashboard:

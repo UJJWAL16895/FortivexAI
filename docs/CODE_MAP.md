@@ -40,3 +40,5 @@
 | End conversation | Close the socket and enqueue finalization | src/api/text_session.py · text_session → src/analytics/worker.py · Insights.work |
 | View insights | Read completed validated reports | src/api/app.py · insights_view → src/analytics/core.py · summarize_call |
 | Export call report | Create a Markdown file from the saved derived fields | frontend/src/reportExport.js · reportMarkdown and downloadReport |
+
+**Public preview** · src/core/settings.py validates startup, src/core/public.py checks access and capacity, and the Console.jsx banner shows mode and the optional unlock form.

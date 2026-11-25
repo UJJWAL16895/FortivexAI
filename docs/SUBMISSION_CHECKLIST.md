@@ -14,3 +14,4 @@ Update this page every phase. A candidate release must run from a fresh checkout
 | Costs and deployment | [ASSUMED] Workload economics in COSTS.md. Reproducible demo deployment in DEPLOYMENT.md. Production rates and capacity remain open. |
 | Interview preparation | [VERIFIED] Interview guide, 40 project questions, live-coding rehearsals, code map and phase quizzes. |
 | Showcase | Browser checks, responsive screenshots and Lighthouse evidence are recorded in STEP-015. The previous baseline is demo-final. |
+| Public preview | [VERIFIED] Local Docker startup and mock default. The evaluator gate and caps have automated coverage. [UNKNOWN] Hosted TLS and persistence until deployment. See DEPLOY_STEPS.md and STEP-018. |

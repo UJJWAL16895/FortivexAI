@@ -131,3 +131,7 @@ Read src/memory/session.py and src/memory/details.py. History is like a small de
 3. **When does a date become part of the profile?** After the agent reads back a calendar date and the caller affirms. A correction is read back again.
 4. **Why use Small for English?** It recognized “three stores” in all three runs of the problem fixture. Base misheard it in all three. Small used more CPU time.
 5. **What happens with no local weights?** Startup says which weights are unavailable, and the same recording can go to Gemini Transcribe.
+
+### STEP-018 · Public preview
+
+The access code works like a desk pass. The server creates a temporary cookie, and the browser brings that cookie when it opens the API or socket. A per-peer and shared tally limits work inside that server process. Read src/core/public.py and test_public.py. Exercise: set the daily cap to two in a test and explain which message uses the second slot. The five-question quiz is in STEP-018.

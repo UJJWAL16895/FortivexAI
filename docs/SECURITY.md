@@ -2,7 +2,7 @@
 
 | Area | Prototype behavior | Production gap |
 |---|---|---|
-| Access | Native and Compose defaults bind localhost. Same-origin checks cover voice POSTs and the WebSocket. The hosting runbook requires HTTPS and an evaluator perimeter. | Application user identity, roles and verified ownership of a returning contact are absent from the local prototype. |
+| Access | Native and Compose defaults bind localhost. Same-origin checks cover voice POSTs and the WebSocket. Public mode defaults to mock. Intentional live requires an HTTPS evaluator gate, with a signed Secure and HttpOnly cookie and process-local per-peer and rolling daily limits. | The shared code provides perimeter access only. User identity, roles, verified contact ownership and durable shared quotas remain production work. |
 | Transport and storage | Hosted TLS terminates at the platform or proxy. SQLite stores synthetic lead contacts, bookings and derived reports. Audio is not written to disk by the app. | No database encryption at rest, tenant isolation, automated retention, deletion workflow, or durable consent record. |
 | PII and logs | Access logs are disabled by launch commands. Tested phone and email forms are masked in selected server loggers. Derived report summaries exclude source text. | Arbitrary PII can still occur in the browser transcript, CRM fields and cloud input. Redaction is a pattern filter. A browser mic prompt is not legal consent. |
 | Prompt injection | Retrieval admits digest-reviewed files. Product wording is extracted exactly from cards. Free-form model text must match reviewed speech before release. | Human source approval remains a trust boundary. No claim of universal injection resistance. |

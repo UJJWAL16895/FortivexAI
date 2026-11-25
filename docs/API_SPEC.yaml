@@ -3,6 +3,25 @@ info:
   title: ShelfPilot Sales Agent
   version: 0.1.0
 paths:
+  /api/public-status:
+    get:
+      summary: Public Status
+      operationId: public_status_api_public_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  anyOf:
+                  - type: boolean
+                  - type: string
+                    enum:
+                    - mock
+                    - live
+                type: object
+                title: Response Public Status Api Public Status Get
   /api/insights:
     get:
       summary: Insights View

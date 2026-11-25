@@ -58,6 +58,9 @@ dd { margin: 0; text-align: right; font-weight: 650; font-variant-numeric: tabul
 .voice-note { margin: 0 16px 14px; color: #645976; font-size: 12px; }
 dd { overflow-wrap: anywhere; }
 .sidebar { overflow-wrap: anywhere; }
+.public-mode { background:#efe9ff; color:#312251; padding: .75rem max(1rem,5vw); }
+.public-mode form { display:flex; align-items:center; flex-wrap:wrap; }
+.public-mode input { min-width:10em; }
 .mic-waveform { display:flex; align-items:center; gap:4px; height:22px; margin:0 16px 10px; }
 .mic-waveform i { display:block; width:5px; height:100%; border-radius:3px; background:#4f2c84; }
 @media(prefers-reduced-motion:reduce) { .mic-waveform i { transform:scaleY(.45) !important; } }
