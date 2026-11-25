@@ -1,5 +1,10 @@
 # Changelog
 
+## Thin voice · 26 November 2026
+
+- Added bounded push-to-talk capture, Gemini transcription, sentence-level playback and synthetic keyless audio.
+- Recorded English/Hindi speech comparisons, browser microphone smoke and the next P5 latency work.
+
 ## P2 · 26 November 2026
 
 - Streamed Gemini text and speakable sentences through the existing socket. Added bounded A/B fallback, mock provenance, quota protection and a simulated failure control.

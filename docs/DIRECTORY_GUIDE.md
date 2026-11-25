@@ -7,6 +7,9 @@
 | src/api/text_session.py and src/llm/mock.py | Tracing a validated text turn and changing the deterministic replies |
 | frontend/src/main.jsx and styles.css | Tracing connection state, transcript rendering and responsive console styling |
 | scripts/demo.py | Running the same WebSocket protocol from a three-turn script |
+| src/llm/gemini.py, reply.py and sentences.py | Following live deltas, request budgets, fallback and phrase boundaries |
+| frontend/src/voice.js and src/api/voice.py | Following PCM capture, transcribing a recording and playing reply sentences |
+| scripts/benchmark_speech.py and tests/e2e/voice_browser.mjs | Reproducing the small voice comparison and the browser capture smoke |
 | docs/API_SPEC.yaml | Checking the published HTTP contract against runtime |
 | scripts/tasks.py and Makefile | Following what setup, verify, run and scan execute on Windows or Linux |
 | scripts/secret_scan.py | Reviewing how staged and working content are scanned |

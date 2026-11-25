@@ -10,3 +10,4 @@
 | Demo host loses an unofficial speech service | Run a failure-injected voice demo | Local/browsable fallbacks and explicit provider labels |
 | Registration estimate mistaken for throughput | Compare reported active streams with measured saturation | Show workload assumptions, bottleneck and exclusions in scalability report |
 | Starlette test transport deprecation | Pytest escalates Starlette deprecation warnings to errors | Pin Starlette, httpx2 and its transport in requirements.lock. P2 installs httpx2 so TestClient uses the supported transport. Recheck warnings and both CI platforms on upgrades. |
+| Live voice waits on cloud transcription | Record stop-to-playback and STT delay in the browser | Preserve the keyless audio fixture and text entry. P5 tests streaming STT and endpointing against the first-audio target. |

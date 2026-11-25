@@ -1,0 +1,13 @@
+# Install alongside requirements.lock for the optional CPU speech comparison.
+av==19.0.2
+ctranslate2==4.9.1
+faster-whisper==1.2.1
+flatbuffers==25.12.19
+fsspec==2026.9.0
+hf-xet==1.8.0
+huggingface-hub==2.4.0
+numpy==2.5.5
+onnxruntime==1.32.0
+protobuf==7.36.2
+tokenizers==0.23.3
+tqdm==4.70.1

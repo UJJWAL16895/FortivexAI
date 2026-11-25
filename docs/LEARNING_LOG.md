@@ -45,3 +45,15 @@ A token bucket refills at a fixed rate. Each outbound request spends one credit.
 3. **When can B take over?** After A fails before visible text, provided the shared request budget allows B.
 4. **How does the UI distinguish a fallback?** Provider events show outcomes, and each completed transcript message retains its LIVE or MOCK label.
 5. **What does the failure button send to Gemini?** Nothing. It injects failures before the HTTP adapter.
+
+## Thin voice · Turn a recording into a spoken reply
+
+Read frontend/src/voice.js, src/api/voice.py and src/voice/gemini.py. Record ends at a clear button press. The browser resamples to mono 16 kHz PCM so both the API and tests have a predictable format. The text returned by STT goes through the same WebSocket path as typed input. Each sentence is queued for playback as it arrives. Ordering keeps the second sentence from interrupting the first. Try changing one bundled mock sentence and testing its audio mapping.
+
+### Thin voice quiz
+
+1. **What stops capture?** The Stop button or the 12-second timer, followed by release of the input tracks.
+2. **What does the server validate?** MIME type, bounded byte count, WAV header, mono format, 16-bit depth, 16 kHz rate and complete frames.
+3. **When can synthesis begin?** When a complete sentence event arrives, while the final reply may still be streaming.
+4. **What is audible without credentials?** Bundled synthetic mock clips corresponding to the fixed mock transcript and reply.
+5. **What starts the thin latency clock?** The recorder's stop event. Final-voiced-sample timing and barge-in arrive in P5.

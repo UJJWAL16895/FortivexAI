@@ -1,14 +1,27 @@
 # Architecture
 
-[VERIFIED] P1 FastAPI serves the built React console and accepts text at /ws/text. Each WebSocket message gets one reply or validation error. The connection starts with a ready event that identifies the deterministic mock. The transcript is browser memory. See TEXT_PROTOCOL.md for frames and error behavior.
+[VERIFIED] FastAPI serves the built React console. P2 streams text deltas and speakable sentences on /ws/text from Gemini A, Gemini B or the deterministic mock. The transcript is browser memory. See TEXT_PROTOCOL.md for frames and error behavior.
 
 ```mermaid
 flowchart LR
     UI["React console or script"] -->|"JSON WebSocket turn"| API["FastAPI text session"]
-    API -->|"Validated 1–500 character message"| MOCK["Deterministic mock"]
+    API -->|"Validated 1–500 character message"| MOCK["Gemini A, Gemini B or mock"]
     MOCK --> API
     API -->|"Reply and compute time"| UI
 ```
+
+## Current thin voice path
+
+```mermaid
+flowchart LR
+    MIC["Browser microphone and explicit Stop"] --> WAV["12-second capture to mono PCM WAV"]
+    WAV --> STT["HTTP transcription: Gemini or mock"]
+    STT --> TURN["Text socket: deltas and sentences"]
+    TURN --> TTS["Sentence playback: Edge, Gemini, browser or mock audio"]
+    TTS --> AUDIO["Browser output"]
+```
+
+The separate synthesis request can start as soon as the first sentence arrives. The browser plays phrases in order. Screens show the configured capture notice, actual reply provenance, transcription provider and stop-to-playback time. The transport holds short recordings in memory.
 
 [ASSUMED] The following diagrams describe the proposed system. Implementation and validation gates are in TASKS.md.
 

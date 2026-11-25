@@ -37,6 +37,8 @@ h2 { font-size: 16px; margin: 0; }
 form { display: flex; gap: 9px; padding: 16px; border-top: 1px solid #ede8f2; }
 input { flex: 1; min-width: 0; padding: 11px 12px; border: 1px solid #dcd3e8; border-radius: 10px; color: inherit; }
 .send { padding: 0 16px; border: 0; border-radius: 10px; background: #4f2c84; color: white; font-weight: 650; }
+.mic { padding: 0 12px; border: 1px solid #dcd3e8; border-radius: 10px; color: #4f2c84; background: #f8f5fd; font-weight: 650; }
+.voice-error { margin: 0 16px 14px; color: #8b2635; font-size: 13px; }
 .sidebar { padding: 22px; }
 dl { margin: 15px 0 0; font-size: 13px; }
 dl div { display: flex; justify-content: space-between; gap: 8px; padding: 9px 0; }
@@ -49,6 +51,9 @@ dd { margin: 0; text-align: right; font-weight: 650; font-variant-numeric: tabul
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media (max-width: 740px) {
   main { padding: 28px 14px; }
-  .workspace { grid-template-columns: 1fr; }
+  .workspace { grid-template-columns: minmax(0, 1fr); }
   .transcript { height: 36vh; }
+  form input { width: 0; }
 }
+.voice-note { margin: 0 16px 14px; color: #645976; font-size: 12px; }
+dd { overflow-wrap: anywhere; }

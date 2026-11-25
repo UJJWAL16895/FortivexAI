@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     gemini_daily: int = Field(default=60, ge=1, le=100000)
     gemini_tpm: int = Field(default=12000, ge=1, le=10000000)
     allow_fallback_demo: bool = False
+    gemini_stt_model: str = "gemini-3.5-transcribe"
+    gemini_tts_model: str = "gemini-3.8-flash-tts"
+    voice_tts: Literal["edge", "gemini", "browser"] = "edge"
 
     @model_validator(mode="after")
     def validate_live_config(self) -> Self:

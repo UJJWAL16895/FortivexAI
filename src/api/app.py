@@ -10,8 +10,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from src.api.text_session import text_session
+from src.api.voice import router as voice_router
 from src.core.settings import Settings
-from src.llm.reply import ReplyPath
+from src.llm.reply import ReplyPath, RequestBudget
 
 
 class Health(BaseModel):
@@ -24,8 +25,12 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        async with httpx.AsyncClient(timeout=9, trust_env=False) as client:
+        async with httpx.AsyncClient(timeout=12, trust_env=False) as client:
+            app.state.http = client
             app.state.replies = ReplyPath(settings, client)
+            app.state.voice_budget = RequestBudget(
+                settings.gemini_rpm, settings.gemini_daily, settings.gemini_tpm
+            )
             yield
 
     app = FastAPI(title="ShelfPilot Sales Agent", version="0.1.0", lifespan=lifespan)
@@ -38,6 +43,7 @@ def create_app() -> FastAPI:
         return Health(status="ok", mode=settings.agent_mode)
 
     app.add_api_websocket_route("/ws/text", text_session)
+    app.include_router(voice_router)
     dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
     if (dist / "index.html").is_file():
         app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")

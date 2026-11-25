@@ -4,4 +4,6 @@ For a local evaluation use the Windows commands in README.md. A fresh clone need
 
 Docker Compose builds the frontend in a Node stage and copies the resulting assets into the non-root Python image. From the root run `docker compose -f infra/docker-compose.yml up --build --wait`, open http://127.0.0.1:8000 and try a message, then stop the stack with `docker compose -f infra/docker-compose.yml down`. For local triage check container state, then /health, then the browser socket. To roll back, check out the last verified demo tag and rebuild. The prototype has no persistent call data in P1.
 
+The supplied Compose profile runs the mock voice demo. For a live demo use the native app on loopback and a populated local .env. For remote browsers plan HTTPS and an explicit microphone permission test. Check /api/voice/transcribe separately from the reply socket when diagnosing recording errors.
+
 [UNKNOWN] Managed deployment footprint, TLS termination, resource limits, failover configuration and production capacity. Record actual container and CI results in the step report. Extend this runbook as deployment targets are verified.
