@@ -1,5 +1,7 @@
 # Learning log
 
+Call export is a browser-only formatting step. See STEP-017 for the quiz.
+
 Booking changes use one SQLite operation per confirmation. See STEP-016 for the behavior and quiz.
 
 The product overview and working console have separate routes. The offline sample is a fixture player while the console executes the real journey. See UI_GUIDE.md for the five-question showcase quiz.

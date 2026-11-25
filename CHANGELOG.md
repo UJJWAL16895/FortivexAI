@@ -1,5 +1,7 @@
 # Changelog
 
+- Added browser-local Markdown export of a saved, derived call report.
+
 - Added explicit transactional booking cancellation and reschedule in the booking session.
 
 ## Core analysis · 26 November 2026

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPlayback, toWav, transcribe } from './voice.js'
 import './styles.css'
+import { downloadReport } from './reportExport.js'
 
 
 const prompts = ['How does the multi-store dashboard work?', 'How much does Growth cost?', 'Can I see a demo?']
@@ -330,6 +331,7 @@ export default function App() {
                   <small>Sentiment by turn · {call.sentiment.join(' → ')}</small>
                   <p>Next action · {call.next_action}</p>
                   <p>Follow-up draft · {call.follow_up_draft}</p>
+                  <button className="suggestion" onClick={() => downloadReport(call)}>Export call report</button>
                 </article>)}
               </section>}
             </section>
