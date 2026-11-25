@@ -7,3 +7,7 @@ Separate active connections from model request concurrency. At four generated re
 [ASSUMED] Proposed path: keep active sockets on their gateway, persist reconnectable state in Redis, route tenant-owned commands to stateless services and use a durable queue for background jobs. Use Postgres transactions for slot arithmetic and replicas for dashboard reads. Move the vector index to managed search when corpus and query concurrency exceed local measurements. Autoscale speech workers by queue delay, admit bounded live streams and apply project-wide model limits. Pin calls to a region and route bookings to the slot’s authoritative writer.
 
 [UNKNOWN] Actual saturation point. P12 must ramp synthetic sessions, hold load, inject provider throttling, record p50/p95 and errors, identify the first bottleneck and rerun after mitigation. Report mock and real-provider throughput separately.
+
+## Capacity verification plan
+
+[ASSUMED] Ramp from 10 to 125 and then 250 active sockets with realistic turn intervals. Hold each level, include disconnect/reconnect traffic and use a separate profile for slow providers. Track queue age, concurrent generation, socket reconnects, CPU and booking conflicts. Provider RPM is a candidate first bottleneck given the 500 requests/minute scenario. Compare observed saturation against quotas before choosing higher model limits, caching or a different tier.

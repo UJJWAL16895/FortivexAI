@@ -11,3 +11,11 @@ Use the same workload assumptions as SCALABILITY.md. Meter audio minutes, provid
 [ASSUMED] Each row uses 5% daily callers and five-minute calls. For a target gross margin m, the usage-price floor is fully allocated cost per minute / (1 − m). Include idle capacity, support and payment costs before proposing a customer price.
 
 [VERIFIED] STEP-000 records the provider’s published free-tier eligibility for the probed primary text model. [UNKNOWN] Actual project billing, free-tier capacity, observed token mix, licensed TTS economics and paid production margin. P12 must date and source provider rates and replace c with measured scenarios. Do not project free demo usage into production capacity. [Official Gemini pricing](https://aistudio.google.com/docs/pricing#gemini-3.5-flash-lite)
+
+| Cost category | P1 local demo | Production scenario input |
+|---|---|---|
+| Reply and analysis | Deterministic mock runs in-process | Billable tokens per turn, turns per minute, retries, cached share |
+| STT and TTS | Outside P1 | Audio and synthesis units per minute, including interrupted responses |
+| Infrastructure | Local machine runs API and UI | Active stream-hours, fixed idle capacity, metrics, egress and storage |
+
+[ASSUMED] Model the low and high cases using half and twice the observed retry and cloud speech rates. Include software support as a separate fixed line item before pricing the pilot. This worksheet tracks usage; the paid rates and invoice reconciliation belong to P12.

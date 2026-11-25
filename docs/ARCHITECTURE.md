@@ -1,6 +1,16 @@
 # Architecture
 
-[VERIFIED] The current FastAPI foundation exposes GET /health and validates configuration. [ASSUMED] The diagrams specify the proposed target architecture. Implementation and validation gates are in TASKS.md.
+[VERIFIED] P1 FastAPI serves the built React console and accepts text at /ws/text. Each WebSocket message gets one reply or validation error. The connection starts with a ready event that identifies the deterministic mock. The transcript is browser memory. See TEXT_PROTOCOL.md for frames and error behavior.
+
+```mermaid
+flowchart LR
+    UI["React console or script"] -->|"JSON WebSocket turn"| API["FastAPI text session"]
+    API -->|"Validated 1–500 character message"| MOCK["Deterministic mock"]
+    MOCK --> API
+    API -->|"Reply and compute time"| UI
+```
+
+[ASSUMED] The following diagrams describe the proposed system. Implementation and validation gates are in TASKS.md.
 
 ## System
 

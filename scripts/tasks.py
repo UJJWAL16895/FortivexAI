@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ENV = ROOT / ".venv"
 PYTHON = ENV / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+NPM = "npm.cmd" if os.name == "nt" else "npm"
 
 
 def run(*args: str | Path) -> None:
@@ -18,7 +19,7 @@ def run(*args: str | Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("task", choices=["setup", "verify", "run", "scan"])
+    parser.add_argument("task", choices=["setup", "verify", "run", "scan", "demo"])
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
     if args.task == "setup":
@@ -28,6 +29,8 @@ def main() -> None:
             venv.EnvBuilder(with_pip=True).create(ENV)
         run(PYTHON, "-m", "pip", "install", "-r", "requirements.lock")
         run(PYTHON, "-m", "pre_commit", "install")
+        run(NPM, "--prefix", "frontend", "ci", "--no-audit", "--no-fund")
+        run(NPM, "--prefix", "frontend", "run", "build")
         for directory in (
             "src/voice",
             "src/llm",
@@ -48,7 +51,11 @@ def main() -> None:
         parser.error("Run scripts/tasks.py setup first with Python 3.13.")
     if args.task == "scan":
         run(PYTHON, "scripts/secret_scan.py")
+    elif args.task == "demo":
+        run(PYTHON, "-m", "scripts.demo", "--port", str(args.port))
     elif args.task == "run":
+        if not (ROOT / "frontend/dist/index.html").is_file():
+            parser.error("Build the console with scripts/tasks.py setup first.")
         run(
             PYTHON,
             "-m",
@@ -59,6 +66,10 @@ def main() -> None:
             "127.0.0.1",
             "--port",
             str(args.port),
+            "--ws",
+            "websockets-sansio",
+            "--ws-max-size",
+            "16384",
             "--no-access-log",
         )
     else:
@@ -68,6 +79,7 @@ def main() -> None:
         run(PYTHON, "-m", "ruff", "format", "--check", ".")
         run(PYTHON, "-m", "mypy")
         run(PYTHON, "-m", "pytest", "-q")
+        run(NPM, "--prefix", "frontend", "run", "build")
 
 
 if __name__ == "__main__":

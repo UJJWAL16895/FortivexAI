@@ -1,5 +1,10 @@
 **
 !requirements.lock
+!frontend/
+!frontend/package*.json
+!frontend/index.html
+!frontend/src/
+!frontend/src/**
 !src/
 !src/**/*.py
 !src/*.py

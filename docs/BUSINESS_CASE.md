@@ -5,3 +5,7 @@
 Evaluate a pilot against the current SDR process on matched inbound leads. Track qualified appointments per inbound lead, accepted handoffs, show rate, rep minutes per booked appointment and correction rate. Estimate monthly net value as saved rep hours × fully loaded hourly cost + incremental attended appointments × contribution per appointment − operating and oversight costs. Assign deal contribution only once.
 
 [ASSUMED] Start with one vendor, one approved knowledge corpus and one appointment calendar. Pilot pricing can combine a base fee for setup/support and metered usage. Compare against human SDR coverage, IVR scheduling and hosted voice-agent platforms on the same workflow and cost basis. [UNKNOWN] Pilot willingness to pay, competitor prices, conversion impact, correction burden and realized ROI. Validate these before P12 pricing and go-to-market claims.
+
+## Pilot decision
+
+[ASSUMED] Recruit a retail SaaS vendor with repeatable inbound questions and a calendar owner. Launch on a narrow FAQ segment and review a sample of answers and every disputed booking with the sales lead. Expand if attended qualified demos per inbound lead are at least as high as baseline and rep review time and cost per attended appointment fall. Test a base and metered quote using low, baseline and high estimates of call volume. Capture opt-outs, escalation quality and unacceptable answers as explicit stop criteria.

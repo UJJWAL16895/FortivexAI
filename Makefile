@@ -8,12 +8,12 @@ endif
 
 PORT ?= 8000
 
-.PHONY: setup verify scan run
+.PHONY: setup verify scan run demo
 setup:
 	$(BOOTSTRAP) scripts/tasks.py setup
 
 verify scan:
 	$(VENV_PY) scripts/tasks.py $@
 
-run:
-	$(VENV_PY) scripts/tasks.py run --port $(PORT)
+run demo:
+	$(VENV_PY) scripts/tasks.py $@ --port $(PORT)

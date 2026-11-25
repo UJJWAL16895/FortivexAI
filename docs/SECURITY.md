@@ -4,6 +4,10 @@
 
 The scanner covers the current snapshot. It does not audit previous Git commits, external backups or OneDrive sync. The prototype should use fictional contacts and synthetic audio. Revoke any exposed credential at its issuer.
 
+[VERIFIED] P1 checks browser Origin against the server host, rejects malformed requests and caps the application message at 500 characters. The launch commands cap frames at 16 KiB. React renders buyer messages as text. Session history lives in the current browser tab. The same-origin check permits local non-browser clients and is distinct from identity authorization.
+
+[ASSUMED] Production controls by boundary include TLS and WebSocket origin allowlists at the gateway, tenant access checks before CRM lookup, encryption and restricted database roles for contact data, and separate permissions for dashboards, booking and deletion. Audit entries should record action, tenant, actor and result while excluding raw caller text. A deletion request must flow through the recording store, transcript, CRM and derived exports according to the agreed retention terms.
+
 [ASSUMED] Before real calls, require TLS, tenant-scoped authorization and contact lookup, encryption at rest, secret-manager integration, consent evidence, retention/deletion jobs, structured allowlisted logs and auditable tool actions. Use separate authorization for recording and for outbound communications. Retrieved text cannot grant tool permissions. Only validated requests with explicit user confirmation may commit bookings. Test adversarial documents and cross-tenant lookups before accepting production traffic.
 
 [UNKNOWN] Applicable GDPR, India DPDP and outbound TRAI/TCPA obligations depend on jurisdiction, customer role and use case. Obtain current authoritative guidance in P12. Audio storage, CRM contact handling, RBAC and regulatory controls require implementation and evidence in their respective gates.

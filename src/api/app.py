@@ -1,8 +1,12 @@
+from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from src.api.text_session import text_session
 from src.core.settings import Settings
 
 
@@ -19,5 +23,14 @@ def create_app() -> FastAPI:
     async def health() -> Health:
         """Process liveness and configured mode. Does not contact providers."""
         return Health(status="ok", mode=settings.agent_mode)
+
+    app.add_api_websocket_route("/ws/text", text_session)
+    dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+    if (dist / "index.html").is_file():
+        app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+
+        @app.get("/", include_in_schema=False)
+        async def console() -> FileResponse:
+            return FileResponse(dist / "index.html")
 
     return app

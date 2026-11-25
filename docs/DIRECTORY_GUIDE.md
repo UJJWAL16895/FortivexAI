@@ -4,6 +4,9 @@
 |---|---|
 | src/core/settings.py | Changing startup validation, credential handling or configured mode |
 | src/api/app.py | Extending FastAPI routes or the Health response |
+| src/api/text_session.py and src/llm/mock.py | Tracing a validated text turn and changing the deterministic replies |
+| frontend/src/main.jsx and styles.css | Tracing connection state, transcript rendering and responsive console styling |
+| scripts/demo.py | Running the same WebSocket protocol from a three-turn script |
 | docs/API_SPEC.yaml | Checking the published HTTP contract against runtime |
 | scripts/tasks.py and Makefile | Following what setup, verify, run and scan execute on Windows or Linux |
 | scripts/secret_scan.py | Reviewing how staged and working content are scanned |
