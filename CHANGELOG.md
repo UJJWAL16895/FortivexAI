@@ -1,5 +1,10 @@
 # Changelog
 
+## Voice latency · 26 November 2026
+
+- Added optional warm CPU transcription with Gemini fallback, per-stage timings and immediate local playback for approved phrases.
+- Added an output claims guardrail and discount regression test, plus interview walkthrough and code map.
+
 ## Thin voice · 26 November 2026
 
 - Added bounded push-to-talk capture, Gemini transcription, sentence-level playback and synthetic keyless audio.

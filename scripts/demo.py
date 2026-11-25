@@ -34,7 +34,7 @@ async def demo(port: int) -> None:
                         raise RuntimeError("Expected mock provider")
                     for prompt, expected in (
                         ("Can I manage three stores?", "locations"),
-                        ("How much does it cost?", "pricing"),
+                        ("How much does it cost?", "human follow-up"),
                         ("Can I see a demo?", "demo"),
                     ):
                         await ws.send(json.dumps({"text": prompt}))
@@ -45,7 +45,7 @@ async def demo(port: int) -> None:
                             pass
                         if reply["type"] != "reply" or expected not in reply["text"]:
                             raise RuntimeError("Unexpected scripted reply")
-                        print(f"Buyer: {prompt}\nAgent [mock]: {reply['text']}")
+                        print(f"Buyer: {prompt}\nAgent [{reply['mode']}]: {reply['text']}")
                     print("Demo passed: 3 replies over WebSocket (mock).")
         finally:
             server.should_exit = True

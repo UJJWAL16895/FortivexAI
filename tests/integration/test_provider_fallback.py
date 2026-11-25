@@ -29,13 +29,25 @@ async def test_real_adapter_falls_back_only_before_visible_text(monkeypatch, tmp
         assert body["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "minimal"}
         if model == "fixture-a" and not partial:
             return httpx.Response(503)
-        data = {"candidates": [{"content": {"parts": [{"text": "First. Second."}]}}]}
+        data = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "text": "How many locations do you manage today? What would you like to see in a demo?"
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
         if not partial:
             data["candidates"][0]["finishReason"] = "STOP"
         return httpx.Response(200, text="data: " + json.dumps(data) + "\n\n")
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
-        events = [event async for event in ReplyPath(settings, client).stream("cost")]
+        events = [event async for event in ReplyPath(settings, client).stream("Hello there")]
     if partial:
         assert calls == ["fixture-a"]
         assert events[-1]["type"] == "error"
@@ -44,6 +56,6 @@ async def test_real_adapter_falls_back_only_before_visible_text(monkeypatch, tmp
         assert events[-1]["provider"] == "fixture-b"
         assert events[-1]["mode"] == "live"
         assert [event["text"] for event in events if event["type"] == "sentence"] == [
-            "First.",
-            "Second.",
+            "How many locations do you manage today?",
+            "What would you like to see in a demo?",
         ]

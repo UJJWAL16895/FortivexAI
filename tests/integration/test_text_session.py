@@ -23,7 +23,7 @@ def test_mock_text_turn_and_recovery(monkeypatch, tmp_path):
         socket.send_json({"text": "What does it cost?"})
         while (reply := socket.receive_json())["type"] not in {"reply", "error"}:
             pass
-        assert "pricing" in reply["text"]
+        assert "human follow-up" in reply["text"]
 
 
 def test_foreign_browser_origin_is_rejected():

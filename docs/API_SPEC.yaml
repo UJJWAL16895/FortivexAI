@@ -21,13 +21,17 @@ paths:
       - voice
       summary: Transcribe Audio
       operationId: transcribe_audio_api_voice_transcribe_post
-      requestBody:
-        content:
-          audio/wav:
-            schema:
-              type: string
-              format: binary
-        required: true
+      parameters:
+      - name: language
+        in: query
+        required: false
+        schema:
+          enum:
+          - en
+          - hi
+          type: string
+          default: en
+          title: Language
       responses:
         '200':
           description: Successful Response
@@ -35,6 +39,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Transcript'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      requestBody:
+        required: true
+        content:
+          audio/wav:
+            schema:
+              type: string
+              format: binary
   /api/voice/speak:
     post:
       tags:
@@ -109,11 +126,15 @@ components:
         latency_ms:
           type: number
           title: Latency Ms
+        api_ms:
+          type: number
+          title: Api Ms
       type: object
       required:
       - text
       - provider
       - latency_ms
+      - api_ms
       title: Transcript
     ValidationError:
       properties:

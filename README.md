@@ -31,7 +31,7 @@ Make setup accepts a BOOTSTRAP override for a nonstandard Python path. Setup nee
 
 To use Gemini, set AGENT_MODE=live in the local .env and configure both model IDs from the benchmark report. Restart the API. Each reply is labelled LIVE or MOCK. To demonstrate failover without a key, set `$env:ALLOW_FALLBACK_DEMO='true'` before launch, then choose **Simulate Gemini failures**. The provider trace shows both simulated failures and the mock response. Remove the environment setting after the demo.
 
-Live voice sends each short recording to Gemini Transcribe. The default edge-tts sends reply sentences to an unofficial online demo service. Set VOICE_TTS=gemini or VOICE_TTS=browser in .env to choose a different synthesizer. A speech error leaves text available. See the [thin voice report](docs/reports/STEP-004.md) for the sample comparison and measured delay.
+On the demo laptop, set up the optional [local CPU transcription](docs/DEPLOYMENT.md) and choose the microphone language in the console. Gemini is the fallback and remains the default on a core-only installation. Common approved English sentences use bundled speech. Other live speech can use unofficial, demo-only edge-tts, Gemini or the browser. A speech error leaves text available. [Voice latency report](docs/reports/STEP-005.md)
 
 Mock mode is the default. Copy .env.example to .env only for a new configuration. Never replace a populated file. The server reads the local file at startup. Keep its real values out of chat, Git, cloud sync, client bundles and screenshots. This project's OneDrive location requires checking your local sync settings. See SECURITY.md for the scope of the scanner.
 
@@ -43,3 +43,4 @@ Mock mode is the default. Copy .env.example to .env only for a new configuration
 - [Directory guide](docs/DIRECTORY_GUIDE.md), [learning log](docs/LEARNING_LOG.md) and [deployment](docs/DEPLOYMENT.md)
 - [Submission checklist](docs/SUBMISSION_CHECKLIST.md) and [P1 verification](docs/reports/STEP-002.md)
 - [P2 model benchmark](docs/reports/STEP-003.md) and [voice checkpoint](docs/reports/STEP-004.md)
+- [Explain the project](docs/EXPLAINED_SIMPLY.md) and [code map](docs/CODE_MAP.md)

@@ -24,6 +24,7 @@ function App() {
   const [mic, setMic] = useState('idle')
   const [voiceInfo, setVoiceInfo] = useState(null)
   const [voiceError, setVoiceError] = useState('')
+  const [voiceLanguage, setVoiceLanguage] = useState('en')
   const [connection, setConnection] = useState(0)
   const socket = useRef(null)
   const transcript = useRef(null)
@@ -32,6 +33,7 @@ function App() {
   const context = useRef(null)
   const playback = useRef(null)
   const replyMode = useRef('mock')
+  const voiceSentAt = useRef(null)
 
   useEffect(() => {
     const url = new URL('/ws/text', window.location.href)
@@ -55,7 +57,7 @@ function App() {
         if (event.status === 'active') {
           setProvider(event.model)
           replyMode.current = event.provider === 'mock' ? 'mock' : 'live'
-          setMode(replyMode.current)
+          if (event.provider !== 'policy') setMode(replyMode.current)
         }
         return
       }
@@ -63,7 +65,16 @@ function App() {
         setPartial(text => text + event.text)
         return
       }
+      if (event.type === 'first_text') {
+        setLatency(event.latency_ms)
+        return
+      }
       if (event.type === 'sentence') {
+        if (voiceSentAt.current != null) {
+          const sentenceMs = performance.now() - voiceSentAt.current
+          voiceSentAt.current = null
+          setVoiceInfo(info => info ? { ...info, sentenceMs } : info)
+        }
         playback.current?.enqueue(event.text, replyMode.current)
         return
       }
@@ -106,6 +117,7 @@ function App() {
     if (!message || pending || socket.current?.readyState !== WebSocket.OPEN) return false
     playback.current?.stop()
     playback.current = voicePlayback
+    voiceSentAt.current = voicePlayback ? performance.now() : null
     socket.current.send(JSON.stringify({ text: message, simulate_failure: simulateFailure }))
     setTrace([])
     setLatency(null)
@@ -143,11 +155,15 @@ function App() {
         recording.current = null
         setMic('transcribing')
         try {
-          const bytes = await toWav(parts, recorder.mimeType, context.current)
-          const transcript = await transcribe(bytes)
-          setVoiceInfo({ stt: transcript.provider, sttMs: transcript.latency_ms })
-          const voicePlayback = createPlayback(context.current, source => setVoiceInfo(info => ({
-            ...info, tts: source, audioMs: info.audioMs ?? Math.round(performance.now() - stoppedAt),
+          const { bytes, endpointMs } = await toWav(parts, recorder.mimeType, context.current)
+          const encodedAt = performance.now()
+          const transcript = await transcribe(bytes, voiceLanguage)
+          setVoiceInfo({ stt: transcript.provider, sttMs: transcript.latency_ms,
+            endpointMs, encodeMs: encodedAt - stoppedAt, transferMs: transcript.transferMs })
+          const voicePlayback = createPlayback(context.current, (source, ttsFirstByteMs) => setVoiceInfo(info => ({
+            ...info, tts: info.tts ?? source,
+            ttsFirstByteMs: info.ttsFirstByteMs ?? ttsFirstByteMs,
+            audioMs: info.audioMs ?? Math.round(performance.now() - stoppedAt),
           })), setVoiceError)
           if (!send(transcript.text, false, voicePlayback)) setVoiceError('Reconnect and record again.')
         } catch (error) {
@@ -200,7 +216,7 @@ function App() {
               <button className="send" disabled={!draft.trim() || pending || mic !== 'idle' || status !== 'Connected'} type="submit">Send <span aria-hidden="true">↑</span></button>
               <button className="mic" disabled={pending || status !== 'Connected' || !['idle', 'recording'].includes(mic)} type="button" onClick={toggleMic}>{({idle: 'Record', starting: 'Opening…', recording: 'Stop', transcribing: 'Transcribing…'})[mic]}</button>
             </form>
-            <p className="voice-note">{configuredMode === 'live' ? 'Mic audio is sent to Gemini for transcription.' : 'Mock voice uses a scripted transcript.'}</p>
+            <p className="voice-note">{configuredMode === 'live' ? 'Microphone audio may be sent to Gemini for transcription.' : 'Mock voice uses a scripted transcript.'}</p>
             {voiceError && <p role="alert" className="voice-error">{voiceError}</p>}
           </section>
           <aside className="panel sidebar">
@@ -210,8 +226,17 @@ function App() {
                 <div><dt>Provider</dt><dd>{provider || '—'}</dd></div>
                 <div><dt>First text</dt><dd>{latency === null ? '—' : `${latency.toFixed(2)} ms`}</dd></div>
                 {voiceInfo && <div><dt>Transcription</dt><dd>{voiceInfo.stt} · {voiceInfo.sttMs.toFixed(0)} ms</dd></div>}
+                {voiceInfo && <div><dt>Endpoint tail · encode</dt><dd>{voiceInfo.endpointMs.toFixed(0)} · {voiceInfo.encodeMs.toFixed(0)} ms</dd></div>}
+                {voiceInfo && <div><dt>Transfer overhead</dt><dd>{voiceInfo.transferMs.toFixed(0)} ms</dd></div>}
+                {voiceInfo?.sentenceMs != null && <div><dt>First approved sentence</dt><dd>{voiceInfo.sentenceMs.toFixed(0)} ms</dd></div>}
+                {voiceInfo?.ttsFirstByteMs != null && <div><dt>TTS first byte</dt><dd>{voiceInfo.ttsFirstByteMs.toFixed(0)} ms</dd></div>}
                 {voiceInfo?.tts && <div><dt>Stop to playback</dt><dd>{voiceInfo.audioMs} ms · {voiceInfo.tts}</dd></div>}
+                {voiceInfo?.tts && <div><dt>Estimated end to playback</dt><dd>{Math.round(voiceInfo.endpointMs + voiceInfo.audioMs)} ms</dd></div>}
               </dl>
+              <label htmlFor="voice-language">Microphone language </label>
+              <select id="voice-language" value={voiceLanguage} onChange={e => setVoiceLanguage(e.target.value)} disabled={mic !== 'idle'}>
+                <option value="en">English</option><option value="hi">Hindi</option>
+              </select>
               {trace.length > 0 && <ul className="trace" aria-label="Provider trace">{trace.map(item => <li key={item}>{item}</li>)}</ul>}
               {allowFallback && <button className="suggestion" disabled={pending || mic !== 'idle' || status !== 'Connected'} onClick={() => send(prompts[0], true)}>Simulate Gemini failures</button>}
               {status === 'Disconnected' && <button className="suggestion" onClick={() => { setStatus('Connecting'); setConnection(value => value + 1) }}>Reconnect</button>}

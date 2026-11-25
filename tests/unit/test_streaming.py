@@ -32,4 +32,4 @@ async def test_simulated_chain_reports_both_failures_before_mock(monkeypatch):
         if event["type"] == "provider" and event["status"] != "trying"
     ] == [("Gemini A", "failed"), ("Gemini B", "failed"), ("mock", "active")]
     assert result[-1]["provider"] == "mock"
-    assert "pricing" in result[-1]["text"]
+    assert "human follow-up" in result[-1]["text"]

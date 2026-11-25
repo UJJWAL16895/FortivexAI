@@ -2,7 +2,7 @@ import asyncio
 import io
 import wave
 from time import monotonic
-from typing import Annotated
+from typing import Annotated, Literal
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -11,7 +11,7 @@ from pydantic import BaseModel, StringConstraints
 from src.core.settings import Settings
 from src.llm.gemini import ProviderError
 from src.llm.reply import RequestBudget
-from src.voice import edge, gemini
+from src.voice import edge, gemini, local
 
 router = APIRouter(prefix="/api/voice", tags=["voice"])
 MAX_WAV = 416_000
@@ -22,6 +22,7 @@ class Transcript(BaseModel):
     text: str
     provider: str
     latency_ms: float
+    api_ms: float
 
 
 class SpeechRequest(BaseModel):
@@ -64,36 +65,50 @@ async def read_wav(request: Request) -> bytes:
         }
     },
 )
-async def transcribe_audio(request: Request) -> Transcript:
+async def transcribe_audio(request: Request, language: Literal["en", "hi"] = "en") -> Transcript:
     check_origin(request)
+    received = monotonic()
     audio = await read_wav(request)
     settings: Settings = request.app.state.settings
     started = monotonic()
     if settings.agent_mode == "mock":
-        return Transcript(text=MOCK_TRANSCRIPT, provider="mock", latency_ms=0)
+        return Transcript(
+            text=MOCK_TRANSCRIPT,
+            provider="mock",
+            latency_ms=0,
+            api_ms=(monotonic() - received) * 1000,
+        )
     assert settings.gemini_api_key is not None
     budget: RequestBudget = request.app.state.voice_budget
     client: httpx.AsyncClient = request.app.state.http
-    try:
-        budget.reserve(600)
-        async with asyncio.timeout(12):
-            text = await gemini.transcribe(
-                client,
-                settings.gemini_api_key.get_secret_value().strip(),
-                settings.gemini_stt_model,
-                audio,
+    providers = ("local", "gemini") if settings.voice_stt == "local" else ("gemini", "local")
+    for provider in providers:
+        try:
+            if provider == "local":
+                async with asyncio.timeout(5):
+                    text = await local.recognize(audio, language)
+                label = "faster-whisper small" if language == "hi" else "faster-whisper base"
+            else:
+                budget.reserve(600)
+                async with asyncio.timeout(10):
+                    text = await gemini.transcribe(
+                        client,
+                        settings.gemini_api_key.get_secret_value().strip(),
+                        settings.gemini_stt_model,
+                        audio,
+                    )
+                label = settings.gemini_stt_model
+        except (ProviderError, TimeoutError, ImportError, OSError, RuntimeError, ValueError):
+            continue
+        if text.strip() and len(text) <= 500:
+            now = monotonic()
+            return Transcript(
+                text=text,
+                provider=label,
+                latency_ms=(now - started) * 1000,
+                api_ms=(now - received) * 1000,
             )
-    except (ProviderError, TimeoutError):
-        raise HTTPException(503, "Transcription unavailable. You can type your message.") from None
-    if not text or len(text) > 500:
-        raise HTTPException(
-            422, "No short transcript was detected. Try again or type your message."
-        )
-    return Transcript(
-        text=text,
-        provider=settings.gemini_stt_model,
-        latency_ms=round((monotonic() - started) * 1000, 2),
-    )
+    raise HTTPException(503, "Transcription unavailable. Type your message to continue.")
 
 
 @router.post(
@@ -110,11 +125,16 @@ async def speak_sentence(request: Request, sentence: SpeechRequest) -> Response:
         budget: RequestBudget = request.app.state.voice_budget
         budget.reserve(500)
         if settings.voice_tts == "edge":
-            audio = await edge.synthesize(sentence.text)
+            audio, first_byte = await edge.synthesize(sentence.text)
             if not audio:
                 return Response(status_code=204)
-            return Response(audio, media_type="audio/mpeg", headers={"X-TTS-Provider": "edge-tts"})
+            return Response(
+                audio,
+                media_type="audio/mpeg",
+                headers={"X-TTS-Provider": "edge-tts", "X-TTS-First-Byte-Ms": str(first_byte)},
+            )
         assert settings.gemini_api_key is not None
+        started = monotonic()
         async with asyncio.timeout(8):
             audio = await gemini.synthesize(
                 request.app.state.http,
@@ -123,7 +143,12 @@ async def speak_sentence(request: Request, sentence: SpeechRequest) -> Response:
                 sentence.text,
             )
         return Response(
-            audio, media_type="audio/wav", headers={"X-TTS-Provider": settings.gemini_tts_model}
+            audio,
+            media_type="audio/wav",
+            headers={
+                "X-TTS-Provider": settings.gemini_tts_model,
+                "X-TTS-First-Byte-Ms": str((monotonic() - started) * 1000),
+            },
         )
     except Exception:
         # Plug-in service errors can contain URLs or caller text. The browser can synthesize locally.

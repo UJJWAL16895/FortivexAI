@@ -7,3 +7,5 @@ Record objective, plan, decisions, actual commands and output, limitations, assu
 Use [VERIFIED] for a measured outcome or read source, [ASSUMED] for proposed values and [UNKNOWN] for an open question. Put assumptions and unresolved questions in their registers. Avoid putting prompt content, contacts, recordings or secrets into reports.
 
 Before tagging or closing a phase, prove the README quickstart from a clean checkout, update SUBMISSION_CHECKLIST.md and record evidence for the numbered PRD criteria. Include five questions with answers for the phase. Explain advanced mechanisms in plain language when they enter the code.
+
+At every phase boundary update EXPLAINED_SIMPLY.md against the actual code, measured results and current limitations. Update CODE_MAP.md whenever a call path changes.

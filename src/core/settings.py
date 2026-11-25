@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     gemini_stt_model: str = "gemini-3.5-transcribe"
     gemini_tts_model: str = "gemini-3.8-flash-tts"
     voice_tts: Literal["edge", "gemini", "browser"] = "edge"
+    voice_stt: Literal["local", "gemini"] = "gemini"
 
     @model_validator(mode="after")
     def validate_live_config(self) -> Self:

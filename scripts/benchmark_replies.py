@@ -9,6 +9,7 @@ from time import perf_counter
 import httpx
 from dotenv import dotenv_values
 
+from src.llm import gemini
 from src.llm.gemini import ProviderError, stream_gemini
 
 MODELS = ("gemini-3.5-flash-lite", "gemini-3.1-flash-lite")
@@ -30,7 +31,14 @@ async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("models", nargs="*", default=MODELS)
     parser.add_argument("--count", type=int, default=10)
+    parser.add_argument("--p2-prompt", action="store_true", help="Reproduce the original P2 prompt")
     args = parser.parse_args()
+    if args.p2_prompt:
+        gemini.SPOKEN_PROMPT = (
+            "You are ShelfPilot's inbound inventory sales assistant. Match the caller's language. "
+            "Use at most two short spoken sentences. Ask one relevant question. "
+            "Do not invent prices, features or confirmed appointments."
+        )
     models = args.models
     key = dotenv_values(".env").get("GEMINI_API_KEY")
     if not key or key.startswith("replace_with_"):

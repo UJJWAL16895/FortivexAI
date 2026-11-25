@@ -23,6 +23,8 @@ flowchart LR
 
 The separate synthesis request can start as soon as the first sentence arrives. The browser plays phrases in order. Screens show the configured capture notice, actual reply provenance, transcription provider and stop-to-playback time. The transport holds short recordings in memory.
 
+The voice-latency phase adds a warm optional CPU transcriber before the cloud fallback on the demo laptop. Candidate model sentences pass an exact reviewed list before text or speech delivery. Known safe English clips play from bundled assets. See CODE_MAP.md for the current call path and STEP-005 for stage timing.
+
 [ASSUMED] The following diagrams describe the proposed system. Implementation and validation gates are in TASKS.md.
 
 ## System

@@ -1,9 +1,13 @@
-import inventoryAudio from './mock-speech/inventory.mp3'
 import locationsAudio from './mock-speech/locations.mp3'
+import checkAudio from './mock-speech/check.mp3'
+import followUpAudio from './mock-speech/follow-up.mp3'
+import demoAudio from './mock-speech/demo.mp3'
 
-const mockAudio = new Map([
-  ['ShelfPilot brings inventory across locations into one view.', inventoryAudio],
+const approvedAudio = new Map([
   ['How many locations do you manage today?', locationsAudio],
+  ['I’ll check that with our team.', checkAudio],
+  ['Would you like a human follow-up?', followUpAudio],
+  ['What would you like to see in a demo?', demoAudio],
 ])
 
 export async function toWav(parts, mimeType, context) {
@@ -15,6 +19,15 @@ export async function toWav(parts, mimeType, context) {
   source.connect(offline.destination)
   source.start()
   const samples = (await offline.startRendering()).getChannelData(0)
+  let lastSpeech = samples.length
+  for (let end = samples.length; end >= 320; end -= 320) {
+    let energy = 0
+    for (let i = end - 320; i < end; i++) energy += samples[i] ** 2
+    if (energy / 320 > 0.000144) {
+      lastSpeech = end
+      break
+    }
+  }
   const bytes = new ArrayBuffer(44 + samples.length * 2)
   const view = new DataView(bytes)
   for (const [offset, text] of [[0, 'RIFF'], [8, 'WAVEfmt '], [36, 'data']]) {
@@ -24,18 +37,19 @@ export async function toWav(parts, mimeType, context) {
     [28, 32000], [40, samples.length * 2]]) view.setUint32(offset, value, true)
   for (const [offset, value] of [[20, 1], [22, 1], [32, 2], [34, 16]]) view.setUint16(offset, value, true)
   samples.forEach((sample, i) => view.setInt16(44 + i * 2, Math.max(-1, Math.min(1, sample)) * 32767, true))
-  return bytes
+  return { bytes, endpointMs: (samples.length - lastSpeech) / 16 }
 }
 
-export async function transcribe(bytes) {
-  const response = await fetch('/api/voice/transcribe', {
+export async function transcribe(bytes, language) {
+  const started = performance.now()
+  const response = await fetch('/api/voice/transcribe?language=' + language, {
     method: 'POST',
     headers: { 'Content-Type': 'audio/wav' },
     body: bytes,
   })
   const result = await response.json()
   if (!response.ok) throw Error(typeof result.detail === 'string' ? result.detail : 'Transcription failed.')
-  return result
+  return { ...result, transferMs: Math.max(0, performance.now() - started - result.api_ms) }
 }
 
 export function createPlayback(context, onStart, onError) {
@@ -60,13 +74,14 @@ export function createPlayback(context, onStart, onError) {
     if (abort.signal.aborted) return
     let response
     let provider
-    if (mode === 'mock') {
-      const url = mockAudio.get(text)
-      if (url) {
-        response = await fetch(url, { signal: abort.signal })
-        provider = 'Mock audio'
-      }
-    } else {
+    let firstByte = null
+    const clip = approvedAudio.get(text)
+    if (clip) {
+      const started = performance.now()
+      response = await fetch(clip, { signal: abort.signal })
+      firstByte = performance.now() - started
+      provider = 'Bundled speech'
+    } else if (mode !== 'mock') {
       response = await fetch('/api/voice/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -74,6 +89,9 @@ export function createPlayback(context, onStart, onError) {
         signal: abort.signal,
       })
       provider = response.headers.get('X-TTS-Provider')
+      if (response.headers.has('X-TTS-First-Byte-Ms')) {
+        firstByte = Number(response.headers.get('X-TTS-First-Byte-Ms'))
+      }
     }
     if (abort.signal.aborted) return
     if (!response?.ok || response.status === 204) return browserSpeech(text)
@@ -85,7 +103,7 @@ export function createPlayback(context, onStart, onError) {
       source.connect(context.destination)
       source.onended = () => { source = null; resolve() }
       source.start()
-      onStart(provider)
+      onStart(provider, firstByte)
     })
   }
 

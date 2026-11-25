@@ -13,6 +13,7 @@ from src.api.text_session import text_session
 from src.api.voice import router as voice_router
 from src.core.settings import Settings
 from src.llm.reply import ReplyPath, RequestBudget
+from src.voice.local import warm
 
 
 class Health(BaseModel):
@@ -25,6 +26,8 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        if settings.agent_mode == "live" and settings.voice_stt == "local":
+            await warm()
         async with httpx.AsyncClient(timeout=12, trust_env=False) as client:
             app.state.http = client
             app.state.replies = ReplyPath(settings, client)

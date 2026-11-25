@@ -57,3 +57,17 @@ Read frontend/src/voice.js, src/api/voice.py and src/voice/gemini.py. Record end
 3. **When can synthesis begin?** When a complete sentence event arrives, while the final reply may still be streaming.
 4. **What is audible without credentials?** Bundled synthetic mock clips corresponding to the fixed mock transcript and reply.
 5. **What starts the thin latency clock?** The recorder's stop event. Final-voiced-sample timing and barge-in arrive in P5.
+
+## Voice latency · Move the expensive stage closer
+
+Cloud transcription took most of one earlier turn. The warm laptop can now read the WAV first. If one transcriber fails, the next gets the same bytes. Read src/api/voice.py and src/voice/local.py. The server checks every candidate sentence against a reviewed list while retrieval is being built. Read src/llm/claims.py and the invented-discount regression test. A short bundled clip can be faster than asking a remote synthesizer to read the same sentence again. Read frontend/src/voice.js.
+
+Try switching the local language to Hindi, then simulate the primary STT failure in the integration test. Keep model first-text timing separate from the first approved sentence and from actual playback.
+
+### Five questions on P2 and voice
+
+1. **What happened to the original bottleneck?** The original sample spent 8.75 s on cloud STT. Warm local English STT took 0.55–1.21 s in three final browser runs.
+2. **How can a single STT failure keep the same turn alive?** The server already has the bounded WAV and sends those same bytes to the backup engine.
+3. **Which text reaches TTS?** Only reviewed sentences or the fixed offer to check with a human. Raw model text cannot reach the player.
+4. **Why can first model text and audio start differ?** The first model chunk may be incomplete or unsafe. The browser waits for a checked sentence and playable audio.
+5. **Why keep Gemini Live out for now?** Its raw audio was faster in the probe, but it would speak before our current claims gate could check the words.

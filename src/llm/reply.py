@@ -9,6 +9,14 @@ from typing import Any, Protocol
 import httpx
 
 from src.core.settings import Settings
+from src.llm.claims import (
+    APPROVED,
+    CHECK_SHORT_EN,
+    CHECK_SHORT_HI,
+    HINDI,
+    PRODUCT_QUESTION,
+    follow_up,
+)
 from src.llm.gemini import SPOKEN_PROMPT, ProviderError, stream_gemini
 from src.llm.mock import MockLLM
 from src.llm.sentences import SentenceBuffer
@@ -94,6 +102,24 @@ class ReplyPath:
 
     async def stream(self, text: str, *, simulate: bool = False) -> AsyncGenerator[dict[str, Any]]:
         settings = self.settings
+        if PRODUCT_QUESTION.search(text) and not simulate:
+            sentences = follow_up(text)
+            yield {
+                "type": "provider",
+                "provider": "policy",
+                "model": "Knowledge guardrail",
+                "status": "active",
+            }
+            for sentence in sentences:
+                yield {"type": "sentence", "text": sentence}
+            yield {
+                "type": "reply",
+                "text": " ".join(sentences),
+                "provider": "policy",
+                "latency_ms": None,
+                "mode": "policy",
+            }
+            return
         slots = (
             ("Gemini A", settings.gemini_model, settings.gemini_thinking),
             ("Gemini B", settings.gemini_fallback_model, settings.gemini_fallback_thinking),
@@ -108,6 +134,8 @@ class ReplyPath:
             yield {"type": "provider", "provider": label, "model": model, "status": "trying"}
             buffer = SentenceBuffer()
             parts: list[str] = []
+            spoken: list[str] = []
+            blocked = False
             first_ms = 0.0
             chunks = (
                 self.mock.stream(text)
@@ -127,10 +155,21 @@ class ReplyPath:
                                 "model": model,
                                 "status": "active",
                             }
+                            yield {"type": "first_text", "latency_ms": first_ms}
                         parts.append(delta)
-                        yield {"type": "delta", "text": delta, "provider": model}
                         for sentence in buffer.push(delta):
-                            yield {"type": "sentence", "text": sentence}
+                            if sentence in APPROVED and not spoken:
+                                spoken.append(sentence)
+                                yield {
+                                    "type": "delta",
+                                    "text": (" " if len(spoken) > 1 else "") + sentence,
+                                }
+                                yield {"type": "sentence", "text": sentence}
+                            elif sentence not in APPROVED:
+                                blocked = True
+                                break
+                        if blocked:
+                            break
                 if not parts:
                     raise ProviderError(502)
             except ProviderError as error:
@@ -148,20 +187,42 @@ class ReplyPath:
                 }
                 if error.status == 429 and not error.local and not simulate:
                     self.budget.cooldown = monotonic() + 10
-                if parts:
+                if spoken:
                     yield {
                         "type": "error",
                         "text": "The reply was interrupted. Please send a new turn.",
                     }
                     return
                 continue
-            for sentence in buffer.finish():
-                yield {"type": "sentence", "text": sentence}
+            for sentence in [] if blocked else buffer.finish():
+                if sentence in APPROVED and not blocked:
+                    spoken.append(sentence)
+                    yield {"type": "delta", "text": (" " if len(spoken) > 1 else "") + sentence}
+                    yield {"type": "sentence", "text": sentence}
+                elif sentence not in APPROVED:
+                    blocked = True
+            use_policy = not spoken
+            if use_policy or blocked:
+                yield {
+                    "type": "provider",
+                    "provider": "policy",
+                    "model": "Knowledge guardrail",
+                    "status": "active",
+                }
+                safe = (
+                    follow_up(text)
+                    if use_policy
+                    else (CHECK_SHORT_HI if HINDI.search(text) else CHECK_SHORT_EN,)
+                )
+                for sentence in safe:
+                    if sentence not in spoken:
+                        spoken.append(sentence)
+                        yield {"type": "sentence", "text": sentence}
             yield {
                 "type": "reply",
-                "text": "".join(parts),
+                "text": " ".join(spoken),
                 "provider": model,
                 "latency_ms": first_ms,
-                "mode": "mock" if label == "mock" else "live",
+                "mode": "policy" if use_policy else "mock" if label == "mock" else "live",
             }
             return

@@ -2,7 +2,7 @@
 import { resolve } from 'node:path'
 import puppeteer from '../../tools/diagrams/node_modules/puppeteer/lib/puppeteer/puppeteer.js'
 
-const [url, wav, chrome, mode = 'mock'] = process.argv.slice(2)
+const [url, wav, chrome, mode = 'mock', language = 'en', duration = '2500'] = process.argv.slice(2)
 if (!url || !wav || !chrome || !['mock', 'live'].includes(mode)) {
   throw Error('Usage: node tests/e2e/voice_browser.mjs URL CAPTURE.wav CHROME_PATH [mock|live]')
 }
@@ -19,9 +19,10 @@ try {
   await page.setViewport({ width: 390, height: 844 })
   await page.goto(url)
   await page.waitForSelector('.connected')
+  if (language !== 'en') await page.select('#voice-language', language)
   await page.click('button.mic')
   await page.waitForFunction(() => document.querySelector('button.mic').textContent === 'Stop')
-  await new Promise(resolve => setTimeout(resolve, 2500))
+  await new Promise(resolve => setTimeout(resolve, Number(duration)))
   await page.click('button.mic')
   await page.waitForFunction(() => document.querySelector('.voice-error') ||
     [...document.querySelectorAll('dt')].some(el => el.textContent === 'Stop to playback'), { timeout: 45000 })
