@@ -1,5 +1,10 @@
 # Changelog
 
+## P2 · 26 November 2026
+
+- Streamed Gemini text and speakable sentences through the existing socket. Added bounded A/B fallback, mock provenance, quota protection and a simulated failure control.
+- Fixed the Starlette test-transport warning with pinned httpx2 and an error-on-deprecation gate.
+
 ## P1 · 26 November 2026
 
 - Added the keyless React/Vite conversation console, deterministic mock provider and validated text WebSocket protocol.

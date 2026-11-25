@@ -30,7 +30,7 @@ async def demo(port: int) -> None:
                     await asyncio.sleep(0.02)
                 async with connect(f"ws://{host}:{port}/ws/text") as ws:
                     ready = json.loads(await ws.recv())
-                    if ready != {"type": "ready", "provider": "mock"}:
+                    if ready.get("mode") != "mock":
                         raise RuntimeError("Expected mock provider")
                     for prompt, expected in (
                         ("Can I manage three stores?", "locations"),
@@ -38,7 +38,11 @@ async def demo(port: int) -> None:
                         ("Can I see a demo?", "demo"),
                     ):
                         await ws.send(json.dumps({"text": prompt}))
-                        reply = json.loads(await ws.recv())
+                        while (reply := json.loads(await ws.recv()))["type"] not in {
+                            "reply",
+                            "error",
+                        }:
+                            pass
                         if reply["type"] != "reply" or expected not in reply["text"]:
                             raise RuntimeError("Unexpected scripted reply")
                         print(f"Buyer: {prompt}\nAgent [mock]: {reply['text']}")

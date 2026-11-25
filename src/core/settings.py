@@ -1,6 +1,6 @@
 from typing import Literal, Self
 
-from pydantic import SecretStr, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     gemini_model: str = ""
     gemini_fallback_model: str = ""
     openai_model: str = ""
+    gemini_thinking: Literal["minimal", "low", "off"] = "minimal"
+    gemini_fallback_thinking: Literal["minimal", "low", "off"] = "minimal"
+    gemini_rpm: int = Field(default=8, ge=1, le=1000)
+    gemini_daily: int = Field(default=60, ge=1, le=100000)
+    gemini_tpm: int = Field(default=12000, ge=1, le=10000000)
+    allow_fallback_demo: bool = False
 
     @model_validator(mode="after")
     def validate_live_config(self) -> Self:

@@ -1,6 +1,6 @@
 # ShelfPilot · FORTIVEX AI sales voice agent
 
-ShelfPilot is an inbound sales agent for a fictional retail inventory vendor. **P1 runs a keyless browser text demo.** Try questions about multiple stores, price and a demo. The current replies are deterministic mock responses. Voice, citations and booking follow in later checkpoints.
+ShelfPilot is an inbound sales agent for a fictional retail inventory vendor. The browser streams replies in keyless mock mode or from Gemini in live mode. Try questions about multiple stores, price and a demo.
 
 ## Start on Windows
 
@@ -28,6 +28,8 @@ Open [the Sales Console](http://127.0.0.1:8000), wait for Connected and choose a
 Make setup accepts a BOOTSTRAP override for a nonstandard Python path. Setup needs network access to install locked Python and npm packages. The console, scripted demo and verification afterwards run offline. The optional pre-commit hook environment is initialized on first use.
 
 ## Credentials
+
+To use Gemini, set AGENT_MODE=live in the local .env and configure both model IDs from the benchmark report. Restart the API. Each reply is labelled LIVE or MOCK. To demonstrate failover without a key, set `$env:ALLOW_FALLBACK_DEMO='true'` before launch, then choose **Simulate Gemini failures**. The provider trace shows both simulated failures and the mock response. Remove the environment setting after the demo.
 
 Mock mode is the default. Copy .env.example to .env only for a new configuration. Never replace a populated file. The server reads the local file at startup. Keep its real values out of chat, Git, cloud sync, client bundles and screenshots. This project's OneDrive location requires checking your local sync settings. See SECURITY.md for the scope of the scanner.
 

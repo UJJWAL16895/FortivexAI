@@ -1,8 +1,13 @@
 """Deterministic replies for a fictional inventory sales conversation."""
 
+from collections.abc import AsyncGenerator
+
 
 class MockLLM:
     name = "mock"
+
+    async def stream(self, message: str) -> AsyncGenerator[str]:
+        yield await self.reply(message)
 
     async def reply(self, message: str) -> str:
         text = message.casefold()

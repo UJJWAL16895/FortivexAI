@@ -12,7 +12,9 @@ fastapi==0.165.0
 filelock==4.3.1
 h11==0.16.0
 httpcore==1.0.9
+httpcore2==2.16.2
 httpx==0.28.1
+httpx2==2.16.2
 identify==2.6.20
 idna==3.20
 iniconfig==2.3.1
@@ -50,6 +52,7 @@ six==1.17.0
 starlette==1.10.0
 typing-inspection==0.4.5
 typing_extensions==4.16.0
+truststore==0.10.5
 uvicorn==0.54.0
 virtualenv==21.15.13
 websockets==17.4

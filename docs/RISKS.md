@@ -9,3 +9,4 @@
 | Secret or caller data reaches logs/build context | Canary tests, staged scan, Docker allowlist | Keep credentials local, suppress raw request/error bodies, use synthetic fixtures |
 | Demo host loses an unofficial speech service | Run a failure-injected voice demo | Local/browsable fallbacks and explicit provider labels |
 | Registration estimate mistaken for throughput | Compare reported active streams with measured saturation | Show workload assumptions, bottleneck and exclusions in scalability report |
+| Starlette test transport deprecation | Pytest escalates Starlette deprecation warnings to errors | Pin Starlette, httpx2 and its transport in requirements.lock. P2 installs httpx2 so TestClient uses the supported transport. Recheck warnings and both CI platforms on upgrades. |

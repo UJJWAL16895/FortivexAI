@@ -31,3 +31,17 @@ Serving the built assets and the socket from FastAPI makes the URL and origin ea
 3. **What happens after malformed JSON?** The handler sends an error and continues reading on the same socket.
 4. **Which file makes a reply deterministic?** src/llm/mock.py selects a fixed response from the text.
 5. **What is shared by the browser and CLI demo?** Both connect to /ws/text and use the same ready, turn and reply protocol. The demo checks expected words in three replies.
+
+## P2 · Stream a reply and switch providers safely
+
+Read src/llm/gemini.py, src/llm/reply.py and src/llm/sentences.py. Gemini yields text as it arrives. A small buffer emits complete speakable sentences and keeps an unfinished fragment until later chunks arrive. The next provider can take over before visible output. An interrupted partial turn ends with an error because replaying it can duplicate words that were already spoken.
+
+A token bucket refills at a fixed rate. Each outbound request spends one credit. The rolling counters also cap attempted requests and estimated prompt volume. These counters are process-local limits, not readings from Google. Try changing a simulated error or splitting 12.50 across three chunks in a test.
+
+### P2 quiz
+
+1. **What marks Gemini's first visible text?** The first nonblank candidate text part without the thought flag.
+2. **Why keep incomplete sentences?** Splitting at every chunk can cut words or decimals and make speech sound unnatural.
+3. **When can B take over?** After A fails before visible text, provided the shared request budget allows B.
+4. **How does the UI distinguish a fallback?** Provider events show outcomes, and each completed transcript message retains its LIVE or MOCK label.
+5. **What does the failure button send to Gemini?** Nothing. It injects failures before the HTTP adapter.

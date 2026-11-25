@@ -3,6 +3,7 @@ testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["error::starlette.exceptions.StarletteDeprecationWarning"]
 
 [tool.ruff]
 target-version = "py313"

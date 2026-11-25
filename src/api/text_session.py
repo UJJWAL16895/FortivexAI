@@ -1,16 +1,17 @@
 import json
-from time import perf_counter_ns
 from typing import Annotated
 
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ConfigDict, StringConstraints, ValidationError
 
-from src.llm.mock import MockLLM
+from src.core.settings import Settings
+from src.llm.reply import ReplyPath
 
 
 class TextTurn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+    simulate_failure: bool = False
 
 
 async def text_session(socket: WebSocket) -> None:
@@ -22,10 +23,17 @@ async def text_session(socket: WebSocket) -> None:
         await socket.close(code=1008)
         return
 
-    provider = MockLLM()
+    settings: Settings = socket.app.state.settings
+    replies: ReplyPath = socket.app.state.replies
     await socket.accept()
     try:
-        await socket.send_json({"type": "ready", "provider": provider.name})
+        await socket.send_json(
+            {
+                "type": "ready",
+                "mode": settings.agent_mode,
+                "allow_fallback_demo": settings.allow_fallback_demo,
+            }
+        )
         while True:
             frame = await socket.receive()
             if frame["type"] == "websocket.disconnect":
@@ -38,14 +46,10 @@ async def text_session(socket: WebSocket) -> None:
             except (ValidationError, ValueError, RecursionError):
                 await socket.send_json({"type": "error", "text": "Enter 1–500 characters."})
                 continue
-            started = perf_counter_ns()
-            answer = await provider.reply(turn.text)
-            await socket.send_json(
-                {
-                    "type": "reply",
-                    "text": answer,
-                    "latency_ms": round((perf_counter_ns() - started) / 1_000_000, 3),
-                }
-            )
+            if turn.simulate_failure and not settings.allow_fallback_demo:
+                await socket.send_json({"type": "error", "text": "Fallback demo is disabled."})
+                continue
+            async for event in replies.stream(turn.text, simulate=turn.simulate_failure):
+                await socket.send_json(event)
     except WebSocketDisconnect:
         return
