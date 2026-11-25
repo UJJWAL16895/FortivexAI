@@ -7,10 +7,11 @@ VENV_PY := .venv/bin/python
 endif
 
 PORT ?= 8000
+VOICE_MODELS ?= 0
 
 .PHONY: setup verify scan run demo
 setup:
-	$(BOOTSTRAP) scripts/tasks.py setup
+	$(BOOTSTRAP) scripts/tasks.py setup $(if $(filter 1,$(VOICE_MODELS)),--voice-models)
 
 verify scan:
 	$(VENV_PY) scripts/tasks.py $@

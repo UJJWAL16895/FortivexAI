@@ -2,7 +2,7 @@
 import { resolve } from 'node:path'
 import puppeteer from '../../tools/diagrams/node_modules/puppeteer/lib/puppeteer/puppeteer.js'
 
-const [url, wav, chrome, mode = 'mock', language = 'en', duration = '2500'] = process.argv.slice(2)
+const [url, wav, chrome, mode = 'mock', language = 'en', duration = '2500', expectation] = process.argv.slice(2)
 if (!url || !wav || !chrome || !['mock', 'live'].includes(mode)) {
   throw Error('Usage: node tests/e2e/voice_browser.mjs URL CAPTURE.wav CHROME_PATH [mock|live]')
 }
@@ -26,8 +26,13 @@ try {
   await page.click('button.mic')
   await page.waitForFunction(() => document.querySelector('.voice-error') ||
     [...document.querySelectorAll('dt')].some(el => el.textContent === 'Stop to playback'), { timeout: 45000 })
+  if (expectation === 'confirm') {
+    await page.waitForSelector('section[aria-label="Lead profile"] .pending')
+  }
   const evidence = await page.evaluate(() => ({
     transcript: document.querySelector('.message.buyer p')?.textContent,
+    reply: [...document.querySelectorAll('.message.agent p')].at(-1)?.textContent,
+    profilePending: Boolean(document.querySelector('section[aria-label="Lead profile"] .pending')),
     error: document.querySelector('.voice-error')?.textContent,
     data: Object.fromEntries([...document.querySelectorAll('dl div')].map(
       row => [row.querySelector('dt').textContent, row.querySelector('dd').textContent]
@@ -39,6 +44,15 @@ try {
   if (evidence.error || !evidence.transcript || !evidence.data['Stop to playback'] ||
       evidence.mode !== mode.toUpperCase() || evidence.overflow || errors.length) {
     throw Error('Voice flow failed')
+  }
+  if (expectation === 'confirm') {
+    await page.type('#message', language === 'hi' ? 'हाँ' : 'yes')
+    await page.keyboard.press('Enter')
+    await page.waitForFunction(() => {
+      const profile = document.querySelector('section[aria-label="Lead profile"]')
+      return profile?.textContent.includes('Stores3') && !profile.querySelector('.pending')
+    })
+    console.log('Confirmed 3 stores in the lead profile.')
   }
 } finally {
   await browser.close()

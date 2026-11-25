@@ -19,10 +19,17 @@ class ProviderError(Exception):
         self.local = local
 
 
-def request_body(text: str, thinking: str) -> dict[str, Any]:
+def request_body(
+    text: str, thinking: str, history: tuple[tuple[str, str], ...] = ()
+) -> dict[str, Any]:
+    contents = [
+        {"role": role, "parts": [{"text": value}]}
+        for buyer, assistant in history
+        for role, value in (("user", buyer), ("model", assistant))
+    ]
     return {
         "systemInstruction": {"parts": [{"text": SPOKEN_PROMPT}]},
-        "contents": [{"parts": [{"text": text}]}],
+        "contents": [*contents, {"role": "user", "parts": [{"text": text}]}],
         "generationConfig": {
             "maxOutputTokens": 192,
             "thinkingConfig": {"thinkingBudget": 0}
@@ -33,7 +40,12 @@ def request_body(text: str, thinking: str) -> dict[str, Any]:
 
 
 async def stream_gemini(
-    client: httpx.AsyncClient, key: str, model: str, thinking: str, text: str
+    client: httpx.AsyncClient,
+    key: str,
+    model: str,
+    thinking: str,
+    text: str,
+    history: tuple[tuple[str, str], ...] = (),
 ) -> AsyncGenerator[str]:
     try:
         async with client.stream(
@@ -41,7 +53,7 @@ async def stream_gemini(
             f"{API}{model}:streamGenerateContent",
             params={"alt": "sse"},
             headers={"x-goog-api-key": key},
-            json=request_body(text, thinking),
+            json=request_body(text, thinking, history),
         ) as response:
             if response.status_code != 200:
                 raise ProviderError(response.status_code)

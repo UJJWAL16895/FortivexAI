@@ -21,7 +21,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("task", choices=["setup", "verify", "run", "scan", "demo"])
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument(
+        "--voice-models",
+        action="store_true",
+        help="Install and download both CPU STT models with setup",
+    )
     args = parser.parse_args()
+    if args.voice_models and args.task != "setup":
+        parser.error("--voice-models applies to setup")
     if args.task == "setup":
         if sys.version_info[:2] != (3, 13):
             parser.error("Use Python 3.13 for the verified dependency lock.")
@@ -31,6 +38,13 @@ def main() -> None:
         run(PYTHON, "-m", "pre_commit", "install")
         run(NPM, "--prefix", "frontend", "ci", "--no-audit", "--no-fund")
         run(NPM, "--prefix", "frontend", "run", "build")
+        if args.voice_models:
+            run(PYTHON, "-m", "pip", "install", "-r", "requirements-speech-eval.lock")
+            run(PYTHON, "-m", "scripts.setup_voice")
+        else:
+            print(
+                "Local Whisper is optional. Use setup --voice-models to install and download Base and Small."
+            )
         for directory in (
             "src/voice",
             "src/llm",

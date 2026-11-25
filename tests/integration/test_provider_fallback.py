@@ -27,6 +27,8 @@ async def test_real_adapter_falls_back_only_before_visible_text(monkeypatch, tmp
         assert request.headers["x-goog-api-key"] == TEST_KEY
         body = json.loads(request.content)
         assert body["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "minimal"}
+        assert [turn["role"] for turn in body["contents"]] == ["user", "model", "user"]
+        assert body["contents"][0]["parts"][0]["text"] == "Previous buyer turn"
         if model == "fixture-a" and not partial:
             return httpx.Response(503)
         data = {
@@ -47,7 +49,11 @@ async def test_real_adapter_falls_back_only_before_visible_text(monkeypatch, tmp
         return httpx.Response(200, text="data: " + json.dumps(data) + "\n\n")
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
-        events = [event async for event in ReplyPath(settings, client).stream("Hello there")]
+        history = (("Previous buyer turn", "Previous safe reply"),)
+        events = [
+            event
+            async for event in ReplyPath(settings, client).stream("Hello there", history=history)
+        ]
     if partial:
         assert calls == ["fixture-a"]
         assert events[-1]["type"] == "error"

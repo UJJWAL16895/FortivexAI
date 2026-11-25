@@ -2,12 +2,14 @@ import locationsAudio from './mock-speech/locations.mp3'
 import checkAudio from './mock-speech/check.mp3'
 import followUpAudio from './mock-speech/follow-up.mp3'
 import demoAudio from './mock-speech/demo.mp3'
+import storesConfirmationAudio from './mock-speech/stores-confirmation.mp3'
 
 const approvedAudio = new Map([
   ['How many locations do you manage today?', locationsAudio],
   ['I’ll check that with our team.', checkAudio],
   ['Would you like a human follow-up?', followUpAudio],
   ['What would you like to see in a demo?', demoAudio],
+  ['I heard 3 stores. Is that correct?', storesConfirmationAudio],
 ])
 
 export async function toWav(parts, mimeType, context) {

@@ -11,7 +11,7 @@ ShelfPilot is a prototype inbound voice agent for a fictional retail inventory s
 | Capture | Microphone sound → recording chunks | frontend/src/main.jsx, toggleMic | The browser can deny permission or lack a mic. |
 | End the turn | Stop click or timer → finished recording | toggleMic and frontend/src/voice.js, toWav | The buyer can stop early or leave a long silence. An energy check estimates the tail after speech. |
 | Transcribe | Mono 16 kHz WAV → text | src/api/voice.py, transcribe_audio; src/voice/local.py, recognize; src/voice/gemini.py, transcribe | A model can mishear a number. A local model may be missing or a cloud request can fail. |
-| Reply | Text → candidate sentences or a policy reply | src/api/text_session.py, text_session; src/llm/reply.py, ReplyPath.stream | A provider can run out of quota or invent an answer. |
+| Reply | Text → a readback, recalled detail, or checked model reply | src/api/text_session.py, text_session; src/memory/session.py, LeadSession.handle; src/llm/reply.py, ReplyPath.stream | A provider can fail. An unclear number requires confirmation. |
 | Split and check | Text chunks → approved sentences | src/llm/sentences.py, SentenceBuffer; src/llm/claims.py, APPROVED and follow_up | A chunk may end mid-word. Unknown wording is blocked. |
 | Synthesize | Approved sentence → audio | frontend/src/voice.js, createPlayback; src/api/voice.py, speak_sentence | The clip can be unavailable or the speech service can fail. The browser can try its own voice. |
 | Play | Audio clip → speaker output and timestamp | createPlayback, play | Autoplay policy can block audio. The transcript stays readable. |
@@ -57,7 +57,7 @@ Browser <-- audio clip ---- FastAPI     (bundled clips play locally)
 | Choice | Why and trade-off |
 |---|---|
 | Gemini Flash-Lite | A completed both ten-prompt passes and streams short replies. Its delay varies and B has failed several times. |
-| Local faster-whisper plus Gemini fallback | Warm CPU transcription reduces network wait. English uses Base and Hindi uses Small. Installation, CPU cost and misheard words are real trade-offs. |
+| Local faster-whisper plus Gemini fallback | Warm CPU transcription reduces network wait. Both languages default to Small after Base misheard “three stores.” Small costs more CPU time. |
 | edge-tts | Quick English/Hindi synthesis in the demo. It calls an unofficial online service with uncertain availability. Bundled approved phrases avoid repeated synthesis. |
 | FastAPI | The same Python server can validate data, handle WebSockets and serve the UI. It requires a host that keeps the server running. |
 | WebSocket for replies | Multiple text and sentence events arrive on one open connection. It adds connection state and reconnect handling. The audio upload and clip downloads use HTTP. |
@@ -71,30 +71,30 @@ Browser <-- audio clip ---- FastAPI     (bundled clips play locally)
 | Built | Still to build |
 |---|---|
 | Typed and push-to-talk turns, keyless voice, live text, English/Hindi microphone setting | Automatic turn detection, full barge-in and robust multilingual conversation |
-| Local/cloud STT fallback, first-output stage timing, guarded model output | Larger speech quality dataset, latency target under normal load and useful grounded facts |
-| Exact safe phrase playback, optional live TTS, visible provider trace | Persistent memory, document retrieval, booking, CRM and post-call insights |
+| Warm local/cloud STT fallback, first-output stage timing, guarded model output | Larger speech quality dataset, latency target under normal load and useful grounded facts |
+| Four-turn memory, lead profile, spoken confirmation, exact safe phrase playback and optional live TTS | Recall across connections, document retrieval, booking, CRM and post-call insights |
 | Verification, Docker and HTTPS deployment guidance | Verified public deployment and production scale |
 
 ## Numbers you can defend
 
-Measured on 26 November 2026. The first release recorded 11.82 s to playback for one live browser fixture. The final latency build gave 5.24, 1.64 and 1.61 s for three runs using the same English fixture. One final Hindi browser run gave 9.24 s. These used Chrome with a synthetic capture device on the demo laptop. Physical microphone-to-speaker lag, performance under load and conversion lift are **NOT MEASURED**. See STEP-005 for provider runs, exact clocks and sample limits.
+Measured on 26 November 2026 using Chrome with synthetic microphone input on the demo laptop. The warmed previous build had medians of 6.18 s in English and 8.69 s in Hindi over three runs per language. The P3-lite confirmation path reached median playback in 1.67 s in English and 3.98 s in Hindi over three runs each. The same inputs now produce a local readback, so these are timings for different reply paths. Physical microphone-to-speaker lag, performance under load and conversion lift are **NOT MEASURED**. See STEP-006 for individual timings.
 
 ## Say the weak points honestly
 
 - “Cloud transcription was the biggest delay in the original browser run. I moved it to my laptop and measured the same fixture again. The reply model was the largest remaining wait in those three English runs.”
-- “Faster recognition can still hear the wrong word. Base heard ‘free stores’ on a fixture that said ‘three stores.’ I kept the text visible so we can spot this.”
+- “Base heard ‘free stores’ in three trials. Small heard ‘three stores’ in all three. I also added voice readback and an affirmative confirmation before saving a count.”
 - “Gemini Live returned audio quickly in a probe. It would speak before our text guard could check its claims, so I kept it out of the shipped turn.”
-- “The demo can offer a human follow-up. It does not send a message to a human today.”
+- “I can offer a human follow-up in the demo. Sending a message is a later integration. Lead details last for one connection.”
 
 ## 60-second pitch
 
-Retail software reps spend time answering similar first questions. ShelfPilot explores how to handle that first conversation with a buyer. The browser records a short turn and sends it to a local or cloud transcriber. FastAPI streams the reply. The server checks sentences before the browser displays or speaks them. Without evidence, the agent offers to check with a person. The same console runs with a deterministic mock, so the demo can run without provider credentials. Moving transcription onto the laptop reduced the waiting time in the test fixture. The next steps are a persistent lead profile, retrieved product knowledge and transactional booking.
+Retail software reps spend time answering similar first questions. ShelfPilot handles the early conversation. The browser records a short turn, and the server uses a local or cloud transcriber. The app reads back counts and dates before saving them in the current lead profile. FastAPI streams checked reply sentences. If it lacks evidence for a product claim, it offers to check with a person. The same console runs with a deterministic mock. The next steps are cited product knowledge and transactional booking.
 
 ## 3-minute walkthrough
 
 1. Open the console and point out mode, provider and language. Record one short question. Show the transcript and mention that this laptop can run the first transcription locally.
 2. Open CODE_MAP.md. Trace the mic button to WAV encoding, then to transcribe_audio. Show the two-provider loop and how both engines receive the same WAV.
-3. Follow the transcript into text_session and ReplyPath.stream. Explain the A/B retry budget, the MOCK fallback, and why the text from a model is just a draft.
+3. Follow the transcript into text_session. Show the pending value, confirm it, and ask what the agent remembers. Open LeadSession and show the four-turn deque. Then trace an ordinary turn through ReplyPath.stream and the A/B fallback.
 4. Open claims.py and the invented-discount test. Show that the unsafe stub never reaches the transcript or audio. Point to the phrase splitter and playback queue.
 5. Show the benchmark and define the timing markers. Mention that synthetic quiet input and a few samples do not predict production throughput. Finish by describing the next memory and retrieval gates.
 
@@ -109,9 +109,9 @@ Retail software reps spend time answering similar first questions. ShelfPilot ex
 7. **Why use HTTP for the upload?** Push-to-talk produces one bounded WAV. A simple POST is enough for that stage.
 8. **Why use WebSocket for the reply?** It carries partial results and a final event on the open connection.
 9. **How do you know the first sentence was ready?** The sentence buffer sees a punctuation boundary and the claim check approves the sentence.
-10. **What was slowest?** Cloud STT dominated the original sample. The largest wait in the new matched English runs was the reply model.
+10. **What was slowest?** Cloud STT dominated the original sample. With warmed local models, CPU transcription and remote reply or synthesis still take time. Readback can skip the model.
 11. **Why is Gemini Live absent from the app?** Its direct speech bypasses the current text check. The raw probe is documented.
 12. **Can this run offline?** After setup the keyless scripted mode can. Live replies need provider access.
-13. **What is the risk of storing a transcript?** It can contain personal information. The browser session currently keeps it in memory.
+13. **Where does memory live?** Four completed pairs and the lead profile live on one server socket. Counts and dates are pending until yes. The browser shows the profile.
 14. **How would you scale?** Measure active sockets, queue delay and provider quota first, then isolate workers and use durable data services.
 15. **What can you change live?** Edit one reviewed sentence or mock branch, update its expectation and run verification.

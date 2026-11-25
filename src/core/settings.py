@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     gemini_tts_model: str = "gemini-3.8-flash-tts"
     voice_tts: Literal["edge", "gemini", "browser"] = "edge"
     voice_stt: Literal["local", "gemini"] = "gemini"
+    whisper_en_model: Literal["base", "small"] = "small"
 
     @model_validator(mode="after")
     def validate_live_config(self) -> Self:

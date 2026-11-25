@@ -25,6 +25,8 @@ function App() {
   const [voiceInfo, setVoiceInfo] = useState(null)
   const [voiceError, setVoiceError] = useState('')
   const [voiceLanguage, setVoiceLanguage] = useState('en')
+  const [lead, setLead] = useState(null)
+  const [needsConfirmation, setNeedsConfirmation] = useState(false)
   const [connection, setConnection] = useState(0)
   const socket = useRef(null)
   const transcript = useRef(null)
@@ -48,6 +50,13 @@ function App() {
         setConfiguredMode(event.mode)
         setProvider(event.mode === 'mock' ? 'Deterministic mock' : 'Gemini')
         setAllowFallback(event.allow_fallback_demo)
+        setLead(null)
+        setNeedsConfirmation(false)
+        return
+      }
+      if (event.type === 'profile') {
+        setLead(event.profile)
+        setNeedsConfirmation(Boolean(event.pending))
         return
       }
       if (event.type === 'provider') {
@@ -57,7 +66,7 @@ function App() {
         if (event.status === 'active') {
           setProvider(event.model)
           replyMode.current = event.provider === 'mock' ? 'mock' : 'live'
-          if (event.provider !== 'policy') setMode(replyMode.current)
+          if (!['policy', 'session'].includes(event.provider)) setMode(replyMode.current)
         }
         return
       }
@@ -241,6 +250,18 @@ function App() {
               {allowFallback && <button className="suggestion" disabled={pending || mic !== 'idle' || status !== 'Connected'} onClick={() => send(prompts[0], true)}>Simulate Gemini failures</button>}
               {status === 'Disconnected' && <button className="suggestion" onClick={() => { setStatus('Connecting'); setConnection(value => value + 1) }}>Reconnect</button>}
             </section>
+            {lead && (needsConfirmation || lead.name || lead.company || lead.need || lead.store_count || lead.target_date) &&
+              <section className="prompts" aria-label="Lead profile">
+                <h2>Lead profile</h2>
+                <dl>
+                  {lead.name && <div><dt>Name</dt><dd>{lead.name}</dd></div>}
+                  {lead.company && <div><dt>Company</dt><dd>{lead.company}</dd></div>}
+                  {lead.need && <div><dt>Need</dt><dd>{lead.need}</dd></div>}
+                  {lead.store_count && <div><dt>Stores</dt><dd>{lead.store_count}</dd></div>}
+                  {lead.target_date && <div><dt>Target date</dt><dd>{lead.target_date}</dd></div>}
+                </dl>
+                {needsConfirmation && <p className="pending">Waiting for your confirmation</p>}
+              </section>}
             <section aria-labelledby="prompts-title" className="prompts">
               <h2 id="prompts-title">Try asking</h2>
               {prompts.map(prompt => <button className="suggestion" key={prompt} disabled={pending || mic !== 'idle' || status !== 'Connected'} onClick={() => send(prompt)}>{prompt}<span aria-hidden="true">↗</span></button>)}

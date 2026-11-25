@@ -33,7 +33,12 @@ async def demo(port: int) -> None:
                     if ready.get("mode") != "mock":
                         raise RuntimeError("Expected mock provider")
                     for prompt, expected in (
-                        ("Can I manage three stores?", "locations"),
+                        (
+                            "My name is Asha. I work at Cedar Retail. We have three stores.",
+                            "Is that correct?",
+                        ),
+                        ("yes", "confirmed"),
+                        ("What do you remember?", "Cedar Retail"),
                         ("How much does it cost?", "human follow-up"),
                         ("Can I see a demo?", "demo"),
                     ):
@@ -46,7 +51,7 @@ async def demo(port: int) -> None:
                         if reply["type"] != "reply" or expected not in reply["text"]:
                             raise RuntimeError("Unexpected scripted reply")
                         print(f"Buyer: {prompt}\nAgent [{reply['mode']}]: {reply['text']}")
-                    print("Demo passed: 3 replies over WebSocket (mock).")
+                    print("Demo passed: 5 replies over WebSocket (mock), including lead recall.")
         finally:
             server.should_exit = True
             await serving

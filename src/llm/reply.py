@@ -69,23 +69,33 @@ class ReplyPath:
         self.cache: dict[tuple[str, str], tuple[float, str]] = {}
 
     async def _live(
-        self, model: str, thinking: str, text: str, simulate: bool
+        self,
+        model: str,
+        thinking: str,
+        text: str,
+        simulate: bool,
+        history: tuple[tuple[str, str], ...] = (),
     ) -> AsyncGenerator[str]:
         if simulate:
             raise ProviderError(503)
         assert self.client is not None and self.settings.gemini_api_key is not None
         key = self.settings.gemini_api_key.get_secret_value().strip()
-        cached = self.cache.get((model, text))
+        cached = self.cache.get((model, text)) if not history else None
         if cached and monotonic() - cached[0] < 300:
             yield cached[1]
             return
         for attempt in range(2):
-            self.budget.reserve(len((SPOKEN_PROMPT + text).encode()) + 32)
+            context_bytes = sum(
+                len(buyer.encode()) + len(agent.encode()) + 16 for buyer, agent in history
+            )
+            self.budget.reserve(len((SPOKEN_PROMPT + text).encode()) + context_bytes + 32)
             parts: list[str] = []
             try:
                 async with (
                     asyncio.timeout(9),
-                    aclosing(stream_gemini(self.client, key, model, thinking, text)) as chunks,
+                    aclosing(
+                        stream_gemini(self.client, key, model, thinking, text, history)
+                    ) as chunks,
                 ):
                     async for delta in chunks:
                         parts.append(delta)
@@ -97,10 +107,12 @@ class ReplyPath:
                 if parts or attempt or error.status not in {500, 502, 503, 504}:
                     raise
                 await asyncio.sleep(0.15 * 2**attempt + random.uniform(0, 0.1))
-        if text in CACHEABLE and parts:
+        if not history and text in CACHEABLE and parts:
             self.cache[(model, text)] = (monotonic(), "".join(parts))
 
-    async def stream(self, text: str, *, simulate: bool = False) -> AsyncGenerator[dict[str, Any]]:
+    async def stream(
+        self, text: str, *, simulate: bool = False, history: tuple[tuple[str, str], ...] = ()
+    ) -> AsyncGenerator[dict[str, Any]]:
         settings = self.settings
         if PRODUCT_QUESTION.search(text) and not simulate:
             sentences = follow_up(text)
@@ -140,7 +152,7 @@ class ReplyPath:
             chunks = (
                 self.mock.stream(text)
                 if label == "mock"
-                else self._live(model, thinking, text, simulate)
+                else self._live(model, thinking, text, simulate, history)
             )
             try:
                 async with aclosing(chunks) as stream:

@@ -12,11 +12,11 @@ If port 8000 is occupied, set SHELFPILOT_HOST_PORT to an unused local port befor
 
 ## Local Windows setup (primary)
 
-Use the README quickstart. The keyless demo needs only the core lock. For faster live microphone turns on the demo laptop, run the commands below from the repository root after setup. The last command downloads the public CPU model weights once. Set VOICE_STT=local in the local .env and restart before the session. Leave VOICE_STT=gemini for a machine without the optional CPU packages. The server tries both configured engines when one fails.
+Use the README quickstart. The keyless demo needs only the core lock. For local microphone transcription, add --voice-models when running setup from the repository root. This installs the optional lock and makes both public CPU model weights available. Set VOICE_STT=local in the local .env and restart before the session. Both models load before requests are served. Startup reports a missing cache explicitly. Gemini receives the same audio if local inference is unavailable. Leave VOICE_STT=gemini for a core-only machine.
 
 ```powershell
-& .\.venv\Scripts\python.exe -m pip install -r requirements-speech-eval.lock
-& .\.venv\Scripts\python.exe -c "from faster_whisper import WhisperModel; [WhisperModel(n, device='cpu', compute_type='int8', cpu_threads=4) for n in ('base', 'small')]"
+& $python scripts/tasks.py setup --voice-models
+# On a machine with GNU Make, the equivalent is make setup VOICE_MODELS=1
 ```
 
 ## Docker and an HTTPS WebSocket host

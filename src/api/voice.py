@@ -85,9 +85,10 @@ async def transcribe_audio(request: Request, language: Literal["en", "hi"] = "en
     for provider in providers:
         try:
             if provider == "local":
+                name = "small" if language == "hi" else settings.whisper_en_model
                 async with asyncio.timeout(5):
-                    text = await local.recognize(audio, language)
-                label = "faster-whisper small" if language == "hi" else "faster-whisper base"
+                    text = await local.recognize(audio, language, name)
+                label = f"faster-whisper {name}"
             else:
                 budget.reserve(600)
                 async with asyncio.timeout(10):

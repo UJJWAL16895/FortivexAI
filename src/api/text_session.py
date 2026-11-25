@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, StringConstraints, ValidationError
 
 from src.core.settings import Settings
 from src.llm.reply import ReplyPath
+from src.memory.session import LeadSession
 
 
 class TextTurn(BaseModel):
@@ -25,6 +26,7 @@ async def text_session(socket: WebSocket) -> None:
 
     settings: Settings = socket.app.state.settings
     replies: ReplyPath = socket.app.state.replies
+    session = LeadSession()
     await socket.accept()
     try:
         await socket.send_json(
@@ -49,7 +51,42 @@ async def text_session(socket: WebSocket) -> None:
             if turn.simulate_failure and not settings.allow_fallback_demo:
                 await socket.send_json({"type": "error", "text": "Fallback demo is disabled."})
                 continue
-            async for event in replies.stream(turn.text, simulate=turn.simulate_failure):
-                await socket.send_json(event)
+            local_reply = session.handle(turn.text) if not turn.simulate_failure else None
+            if local_reply is not None:
+                await socket.send_json(
+                    {
+                        "type": "provider",
+                        "provider": "session",
+                        "model": "Lead session",
+                        "status": "active",
+                    }
+                )
+                await socket.send_json({"type": "sentence", "text": local_reply})
+                await socket.send_json(
+                    {
+                        "type": "reply",
+                        "text": local_reply,
+                        "provider": "session",
+                        "mode": "session",
+                        "latency_ms": None,
+                    }
+                )
+                session.remember(turn.text, local_reply)
+            else:
+                async for event in replies.stream(
+                    turn.text, simulate=turn.simulate_failure, history=tuple(session.history)
+                ):
+                    await socket.send_json(event)
+                    if event["type"] == "reply" and not turn.simulate_failure:
+                        session.remember(turn.text, event["text"])
+            await socket.send_json(
+                {
+                    "type": "profile",
+                    "profile": session.profile.model_dump(mode="json", exclude_none=True),
+                    "pending": session.pending.model_dump(mode="json", exclude_none=True)
+                    if session.pending
+                    else None,
+                }
+            )
     except WebSocketDisconnect:
         return

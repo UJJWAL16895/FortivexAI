@@ -25,6 +25,8 @@ The separate synthesis request can start as soon as the first sentence arrives. 
 
 The voice-latency phase adds a warm optional CPU transcriber before the cloud fallback on the demo laptop. Candidate model sentences pass an exact reviewed list before text or speech delivery. Known safe English clips play from bundled assets. See CODE_MAP.md for the current call path and STEP-005 for stage timing.
 
+P3-lite adds one LeadSession to each text socket. It holds four recent completed turns and a separate lead profile. Pending counts and dates are read back locally before being committed. An ordinary live turn passes the recent dialogue as Gemini user/model messages. A context turn bypasses the shared cache. The profile and history last for the connection, and there are no P3 workers or persistent records. See STEP-006.
+
 [ASSUMED] The following diagrams describe the proposed system. Implementation and validation gates are in TASKS.md.
 
 ## System

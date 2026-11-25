@@ -12,7 +12,7 @@ def test_mock_text_turn_and_recovery(monkeypatch, tmp_path):
         assert socket.receive_json()["type"] == "error"
         socket.send_json({"text": "  "})
         assert socket.receive_json()["type"] == "error"
-        socket.send_json({"text": "Can I manage three stores?"})
+        socket.send_json({"text": "How do I manage multiple stores?"})
         events = []
         while (reply := socket.receive_json())["type"] not in {"reply", "error"}:
             events.append(reply["type"])
@@ -24,6 +24,36 @@ def test_mock_text_turn_and_recovery(monkeypatch, tmp_path):
         while (reply := socket.receive_json())["type"] not in {"reply", "error"}:
             pass
         assert "human follow-up" in reply["text"]
+
+
+def test_socket_keeps_confirmation_and_recall_local_to_one_connection(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("AGENT_MODE", "mock")
+    client = TestClient(create_app())
+
+    def exchange(socket, text):
+        socket.send_json({"text": text})
+        while (reply := socket.receive_json())["type"] != "reply":
+            pass
+        profile = socket.receive_json()
+        assert profile["type"] == "profile"
+        return reply["text"], profile
+
+    with client.websocket_connect("/ws/text") as socket:
+        socket.receive_json()
+        reply, event = exchange(
+            socket, "My name is Asha. I work at Cedar Retail. We have three stores."
+        )
+        assert "3 stores" in reply and event["pending"] == {"store_count": 3}
+        assert "store_count" not in event["profile"]
+        _, event = exchange(socket, "yes")
+        assert event["profile"]["store_count"] == 3 and event["pending"] is None
+        reply, _ = exchange(socket, "What do you remember?")
+        assert "Asha" in reply and "Cedar Retail" in reply and "3 stores" in reply
+    with client.websocket_connect("/ws/text") as new_socket:
+        new_socket.receive_json()
+        reply, event = exchange(new_socket, "What do you remember?")
+        assert "Asha" not in reply and "store_count" not in event["profile"]
 
 
 def test_foreign_browser_origin_is_rejected():

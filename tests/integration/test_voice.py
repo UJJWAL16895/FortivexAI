@@ -56,11 +56,11 @@ def test_one_stt_failure_keeps_the_same_audio_for_fallback(monkeypatch, tmp_path
     audio = stream.getvalue()
     calls = []
 
-    async def local_stt(recording, language):
-        assert recording == audio and language == "hi"
+    async def local_stt(recording, language, name):
+        assert recording == audio and language == "hi" and name == "small"
         calls.append("local")
         if primary == "local":
-            raise RuntimeError
+            raise FileNotFoundError("fixture missing weights")
         return "नमस्ते"
 
     async def gemini_stt(client, key, model_name, recording):

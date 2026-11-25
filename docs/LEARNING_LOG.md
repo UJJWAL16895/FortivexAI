@@ -71,3 +71,15 @@ Try switching the local language to Hindi, then simulate the primary STT failure
 3. **Which text reaches TTS?** Only reviewed sentences or the fixed offer to check with a human. Raw model text cannot reach the player.
 4. **Why can first model text and audio start differ?** The first model chunk may be incomplete or unsafe. The browser waits for a checked sentence and playable audio.
 5. **Why keep Gemini Live out for now?** Its raw audio was faster in the probe, but it would speak before our current claims gate could check the words.
+
+## P3-lite · Remember a little and confirm what matters
+
+Read src/memory/session.py and src/memory/details.py. History is like a small desk tray that holds the last four exchanges. The lead profile is a separate note with confirmed facts. A number or date goes on a scratch pad first. The user hears it and confirms it before it goes into the profile. Both structures belong to one open socket. Try a count correction and then ask the agent to read back the profile.
+
+### P3-lite quiz
+
+1. **What happens to older turns?** A four-entry deque drops the oldest completed pair. Confirmed profile fields remain on the same socket.
+2. **What if STT hears “free stores”?** The agent asks the caller for the count and stores no guessed value.
+3. **When does a date become part of the profile?** After the agent reads back a calendar date and the caller affirms. A correction is read back again.
+4. **Why use Small for English?** It recognized “three stores” in all three runs of the problem fixture. Base misheard it in all three. Small used more CPU time.
+5. **What happens with no local weights?** Startup says which weights are unavailable, and the same recording can go to Gemini Transcribe.

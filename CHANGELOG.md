@@ -1,5 +1,10 @@
 # Changelog
 
+## P3-lite · 26 November 2026
+
+- Added socket-scoped history and a structured lead profile with explicit count and date confirmation.
+- Added optional setup for both CPU models, startup cache diagnostics, English Small selection, and missing-model fallback verification.
+
 ## Voice latency · 26 November 2026
 
 - Added optional warm CPU transcription with Gemini fallback, per-stage timings and immediate local playback for approved phrases.
