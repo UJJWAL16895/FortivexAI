@@ -1,0 +1,10 @@
+**
+!requirements.lock
+!src/
+!src/**/*.py
+!src/*.py
+**/__pycache__/
+**/*.pyc
+**/.env*
+**/*.key
+**/*.pem

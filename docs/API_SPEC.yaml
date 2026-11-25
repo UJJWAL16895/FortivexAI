@@ -1,0 +1,36 @@
+openapi: 3.1.0
+info:
+  title: ShelfPilot Sales Agent
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      summary: Health
+      description: Process liveness and configured mode. Does not contact providers.
+      operationId: getHealth
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+components:
+  schemas:
+    Health:
+      properties:
+        status:
+          type: string
+          const: ok
+          title: Status
+        mode:
+          type: string
+          enum:
+          - mock
+          - live
+          title: Mode
+      type: object
+      required:
+      - status
+      - mode
+      title: Health
