@@ -1,0 +1,25 @@
+sequenceDiagram
+    participant B as Browser
+    participant V as Voice HTTP
+    participant S as Text WebSocket
+    participant R as Reviewed retrieval
+    participant D as SQLite
+    participant Q as Analysis worker
+    opt Voice input
+      B->>V: Validated WAV and language hint
+      V-->>B: Transcript or typed recovery
+    end
+    B->>S: Question
+    S->>R: Find an approved card
+    R-->>S: Exact answer and citation or abstention
+    S-->>B: Sentence and cited reply
+    opt Voice playback
+      B->>V: Synthesize approved sentence if needed
+      V-->>B: Audio or browser fallback
+    end
+    B->>S: Contact, demo request and explicit confirmation
+    S->>D: Claim unique slot
+    D-->>S: Committed booking or conflict
+    S-->>B: Receipt
+    S--)Q: Completed turns and finalization
+    Q->>D: Save validated call report

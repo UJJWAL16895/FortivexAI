@@ -1,9 +1,18 @@
-# Live coding · Executable P0 recipes
+# Live coding on a scratch branch
 
-**Trace failed startup.** Open Settings.validate_live_config in src/core/settings.py. Run `.venv/Scripts/python.exe -m pytest tests/unit/test_settings.py -q` on Windows. Ask which combinations require a live key and model. Inspect sanitized validation messages only.
+[VERIFIED] Run scripts/rehearse.py from a clean scratch clone on branch codex/interview-rehearsal. The script records lines, runs focused checks and restores the edited files.
 
-**Change the health endpoint.** Edit create_app and Health in src/api/app.py. Change the expected response in tests/integration/test_health.py. Regenerate docs/API_SPEC.yaml from create_app().openapi() with yaml.safe_dump and run tests/integration/test_contract.py. The contract must reflect precisely the schema served to clients.
+| Recipe | Anchor | Rehearsed change |
+|---|---|---|
+| Language variant | src/memory/session.py:24 | Add a Roman confirmation alias. |
+| Qualification | src/analytics/core.py:78 | Raise the Hot threshold and check Warm. |
+| Booking | src/crm/store.py:79 | Move the first slot to noon. |
+| Knowledge doc | data/knowledge/faq.json:12 and approval.json | Add an alias and recompute its digest. |
+| CRM field | src/memory/session.py:51 | Add a role and test persistence. |
+| Sentiment | src/analytics/core.py:8 | Add a validated Concerned label. |
+| Provider | src/core/settings.py:26 | Select browser TTS in settings. |
+| Endpoint | src/api/app.py:81 | Serve and call GET /ping. |
+| Latency | src/llm/reply.py:26 | Shorten the deadline and test fallback. |
+| RAG miss | src/rag/index.py:19 | Inspect the threshold and check abstention. |
 
-**Debug a verification failure.** In scripts/tasks.py follow main in execution order. Run the failing check independently, then both Windows and Make verify commands. For a secret-scan failure inspect your own changes privately, correct both working and staged content, and rerun. Never paste suspect lines into chat or reports.
-
-Recipes for provider swaps, languages, scoring, RAG, booking, CRM fields, tool registration and latency investigation are acceptance deliverables when those modules exist.
+The locale rehearsal exercises a language variant only. A production locale also needs STT and TTS support, localized answers and voice fixtures.

@@ -1,4 +1,4 @@
-# Submission checklist · Core analysis
+# Submission checklist · Hardened demo
 
 Update this page every phase. A candidate release must run from a fresh checkout and its documentation must describe the actual behavior. Future items remain visible to the evaluator.
 
@@ -9,7 +9,7 @@ Update this page every phase. A candidate release must run from a fresh checkout
 | Architecture diagram | [VERIFIED] Current text path and future system, sequence and data-flow designs are in ARCHITECTURE.md. |
 | Working demo | [VERIFIED] Cited price, explicit IST booking and persisted demo CRM by text and browser voice. End the conversation and open Insights for the recent call report. STEP-007 through STEP-010 hold the evidence. |
 | Business problem and feasibility | [ASSUMED] Initial segment, pilot design and ROI model documented in BUSINESS_CASE.md. |
-| Scalability to 1,00,000 users | [ASSUMED] Workload math and migration plan in SCALABILITY.md. Load evidence comes at P12. |
+| Scalability to 1,00,000 users | [ASSUMED] Workload math and migration plan in SCALABILITY.md. [VERIFIED] Loopback mock load tested through 500 clients. |
 | Security and data handling | [VERIFIED] Local same-origin browser check, bounded input and staged secrets gate. Planned production controls and open questions in SECURITY.md. |
 | Costs and deployment | [ASSUMED] Workload economics in COSTS.md. Reproducible demo deployment in DEPLOYMENT.md. Production rates and capacity remain open. |
-| Interview preparation | [VERIFIED] EXPLAINED_SIMPLY.md includes pitches and 15 questions. CODE_MAP.md traces one voice and one text turn. Phase quizzes with answers are in LEARNING_LOG.md. |
+| Interview preparation | [VERIFIED] Interview guide, 40 project questions, live-coding rehearsals, code map and phase quizzes. |

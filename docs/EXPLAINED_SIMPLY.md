@@ -1,5 +1,7 @@
 # Explain ShelfPilot without notes
 
+Use the [40 project-specific questions](INTERVIEW_QA.md) for the full rehearsal.
+
 ## The project in three sentences
 
 ShelfPilot is a prototype inbound voice agent for a fictional retail inventory software vendor. It helps a buyer ask an early sales question while saving a rep from repeating the same intake conversation. Today it listens, creates a transcript and speaks a short guarded reply, with a fully local scripted demo and a live provider path.
@@ -129,4 +131,4 @@ On 26 November 2026 the authored twenty-question evaluation found 14/15 expected
 
 ## Core analysis update
 
-After the reply is sent, the backend drops the buyer turn on a small work queue. A worker checks simple sentiment words and explicit BANT signals. BANT means budget, authority, need and timeline. Think of four boxes a sales rep can tick when the buyer gives evidence. When the call ends, the worker creates a checked report with the score, reasons, sentiment by turn, next action and a draft. The insights panel shows completed calls. The report is a demo heuristic, and population accuracy is **NOT MEASURED**. Recent reports live in memory and disappear on restart. The follow-up is a draft for a person to review.
+After the reply is sent, the backend drops the buyer turn on a small work queue. A worker checks simple sentiment words and explicit BANT signals. BANT means budget, authority, need and timeline. Think of four boxes a sales rep can tick when the buyer gives evidence. When the call ends, the worker creates a checked report with the score, reasons, sentiment by turn, next action and a draft. The insights panel shows completed calls. The report is a demo heuristic, and population accuracy is **NOT MEASURED**. SQLite keeps completed reports across restarts. The follow-up is a draft for a person to review.

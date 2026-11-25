@@ -1,5 +1,7 @@
 # Architecture
 
+Current exports show the running browser, FastAPI, CRM and persisted analysis flow. [System SVG](diagrams/system.svg) · [Sequence SVG](diagrams/sequence.svg) · [One-page PDF](diagrams/architecture.pdf)
+
 [VERIFIED] FastAPI serves the built React console. P2 streams text deltas and speakable sentences on /ws/text from Gemini A, Gemini B or the deterministic mock. The transcript is browser memory. See TEXT_PROTOCOL.md for frames and error behavior.
 
 ```mermaid

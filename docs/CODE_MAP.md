@@ -1,5 +1,13 @@
 # Code map · one turn
 
+## Five-minute tour
+
+1. Open frontend/src/main.jsx and voice.js for console and microphone events.
+2. Open src/api/text_session.py for turn routing and disconnect cancellation.
+3. Open src/rag/index.py and src/llm/reply.py for citations and provider fallback.
+4. Open src/crm/conversation.py and store.py for contact recall and slot claims.
+5. Open src/analytics/worker.py and store.py for saved insights and denominators.
+
 ## Voice turn
 
 | Order | When this happens | Open this function |

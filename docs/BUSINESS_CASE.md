@@ -1,11 +1,11 @@
 # Business case
 
-[ASSUMED] The initial buyer is a retail software vendor whose sales reps answer repeated feature and pricing questions and schedule demos. The agent handles inbound qualification in English/Hindi, gives traceable product answers and books an appointment while the buyer is present. A rep receives a structured handoff. A buyer can request a human when the question is unsupported.
+An inbound retail SaaS rep spends time repeating product and pricing answers and collecting contact details. ShelfPilot gives a sourced response to supported questions, confirms a demo slot and leaves a CRM and analysis record for the rep. Start with small retail software vendors that have an approved FAQ, one shared calendar and English/Hindi buyers.
 
-Evaluate a pilot against the current SDR process on matched inbound leads. Track qualified appointments per inbound lead, accepted handoffs, show rate, rep minutes per booked appointment and correction rate. Estimate monthly net value as saved rep hours × fully loaded hourly cost + incremental attended appointments × contribution per appointment − operating and oversight costs. Assign deal contribution only once.
+## Illustrative ROI [ASSUMED]
 
-[ASSUMED] Start with one vendor, one approved knowledge corpus and one appointment calendar. Pilot pricing can combine a base fee for setup/support and metered usage. Compare against human SDR coverage, IVR scheduling and hosted voice-agent platforms on the same workflow and cost basis. [UNKNOWN] Pilot willingness to pay, competitor prices, conversion impact, correction burden and realized ROI. Validate these before P12 pricing and go-to-market claims.
+Assume 1,000 inbound conversations/month. A human rep handles them in six minutes each, or 100 hours. Assume agent handling reduces human review to two minutes each, or 33.3 hours. At $12 loaded labor/hour the implied savings are $800/month. Applying the COSTS.md variable scenario to 5,000 connected minutes gives $153.20, leaving $646.80 before fixed costs and corrections. Time saved, conversion and willingness to pay are NOT MEASURED. A pilot should count attended qualified appointments, transfers, wrong answers and review time against a baseline.
 
-## Pilot decision
+Alternatives include a human SDR with a scheduling tool, a scripted IVR, and general voice-agent vendors such as Vapi and Retell AI. Compare sourced answers, booking correction rate and operator cost with the same call set. Avoid unsupported product rankings. [Vapi](https://vapi.ai/) · [Retell AI](https://www.retellai.com/)
 
-[ASSUMED] Recruit a retail SaaS vendor with repeatable inbound questions and a calendar owner. Launch on a narrow FAQ segment and review a sample of answers and every disputed booking with the sales lead. Expand if attended qualified demos per inbound lead are at least as high as baseline and rep review time and cost per attended appointment fall. Test a base and metered quote using low, baseline and high estimates of call volume. Capture opt-outs, escalation quality and unacceptable answers as explicit stop criteria.
+[ASSUMED] A small platform fee plus usage would fund setup and routine maintenance. Main risks are speech errors, a thin reviewed corpus, provider delay, ambiguous identity, quota and customer trust. Use synthetic data in evaluation and measure outcomes before a real pilot.
