@@ -58,3 +58,6 @@ dd { margin: 0; text-align: right; font-weight: 650; font-variant-numeric: tabul
 .voice-note { margin: 0 16px 14px; color: #645976; font-size: 12px; }
 dd { overflow-wrap: anywhere; }
 .sidebar { overflow-wrap: anywhere; }
+.mic-waveform { display:flex; align-items:center; gap:4px; height:22px; margin:0 16px 10px; }
+.mic-waveform i { display:block; width:5px; height:100%; border-radius:3px; background:#4f2c84; }
+@media(prefers-reduced-motion:reduce) { .mic-waveform i { transform:scaleY(.45) !important; } }

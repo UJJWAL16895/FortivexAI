@@ -90,6 +90,7 @@ def create_app() -> FastAPI:
         app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
 
         @app.get("/", include_in_schema=False)
+        @app.get("/console", include_in_schema=False)
         async def console() -> FileResponse:
             return FileResponse(dist / "index.html")
 

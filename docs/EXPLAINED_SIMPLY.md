@@ -1,5 +1,7 @@
 # Explain ShelfPilot without notes
 
+The home page introduces the journey and plays a local scripted sample. The working console lives at /console and runs the actual backend. A local fixture never spends provider quota.
+
 Use the [40 project-specific questions](INTERVIEW_QA.md) for the full rehearsal.
 
 ## The project in three sentences

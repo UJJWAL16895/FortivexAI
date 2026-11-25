@@ -1,5 +1,7 @@
 # Live coding on a scratch branch
 
+Showcase edits: change the hero heading in frontend/src/Showcase.jsx, add a feature to its features array or change --accent in frontend/src/showcase.css. Run the production build and the showcase browser check. See UI_GUIDE.md.
+
 [VERIFIED] Run scripts/rehearse.py from a clean scratch clone on branch codex/interview-rehearsal. The script records lines, runs focused checks and restores the edited files.
 
 | Recipe | Anchor | Rehearsed change |

@@ -33,7 +33,7 @@ try {
       }
     }, files)
   }
-  await page.goto(url)
+  await page.goto(new URL('/console', url).href)
   await page.waitForSelector('.connected')
   const lastReply = text => page.waitForFunction(value =>
     [...document.querySelectorAll('.message.agent p')].at(-1)?.textContent.includes(value),

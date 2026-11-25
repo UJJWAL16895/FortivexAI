@@ -1,4 +1,4 @@
-# Submission checklist · Hardened demo
+# Submission checklist · Showcase
 
 Update this page every phase. A candidate release must run from a fresh checkout and its documentation must describe the actual behavior. Future items remain visible to the evaluator.
 
@@ -13,3 +13,4 @@ Update this page every phase. A candidate release must run from a fresh checkout
 | Security and data handling | [VERIFIED] Local same-origin browser check, bounded input and staged secrets gate. Planned production controls and open questions in SECURITY.md. |
 | Costs and deployment | [ASSUMED] Workload economics in COSTS.md. Reproducible demo deployment in DEPLOYMENT.md. Production rates and capacity remain open. |
 | Interview preparation | [VERIFIED] Interview guide, 40 project questions, live-coding rehearsals, code map and phase quizzes. |
+| Showcase | Browser checks, responsive screenshots and Lighthouse evidence are recorded in STEP-015. The previous baseline is demo-final. |

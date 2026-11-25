@@ -17,7 +17,7 @@ try {
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   await page.setViewport({ width: 390, height: 844 })
-  await page.goto(url)
+  await page.goto(new URL('/console', url).href)
   await page.waitForSelector('.connected')
   if (language !== 'en') await page.select('#voice-language', language)
   await page.click('button.mic')
