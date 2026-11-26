@@ -149,3 +149,13 @@ The session code receives the same events. The cockpit turns those events into a
 3. **What does a dash on latency mean?** The stage has no measurement for this turn.
 4. **What does the citation drawer display?** The reviewed excerpt already returned with the citation.
 5. **Does Reset call erase a saved booking?** It clears the UI and opens a new session. The database keeps the booking.
+
+### STEP-021 · One-click live mode
+
+A socket stores mode like a setting on one call. An opaque handle lets the speech upload use the same setting without sending a provider credential. Read src/api/live_mode.py and chooseMode in Console.jsx. Try returning a synthetic 429 in the integration fixture and trace what changes.
+
+1. **What does the browser send on click?** A mode request on the existing socket.
+2. **What is the order of activation?** Validate settings, try one bounded Gemini request, prepare voice and confirm the connection mode.
+3. **What happens when local Whisper is missing?** The ready message explains that the connection will use Gemini STT.
+4. **Why doesn't changing mode reset the lead?** The existing connection keeps the same LeadSession.
+5. **What does localStorage keep?** A mode preference. LIVE is checked again on a new connection.

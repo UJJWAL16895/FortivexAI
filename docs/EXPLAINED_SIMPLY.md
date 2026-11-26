@@ -148,3 +148,7 @@ The clean Windows copy passed 46 tests. Its live-mode browser run booked and sav
 ## Live Call Cockpit
 
 Think of the console as three desks. On the left, you record or choose a scenario. The orb moves with your mic level while recording, and the label says what the app is doing. In the middle, you read the conversation. A source chip opens the reviewed answer, and the booking receipt shows the confirmed time. On the right, the profile and timing change as their events arrive. End the call to see its report in Insights. The sentiment and score cards read the latest saved report. Reset starts a fresh screen and opens a new connection.
+
+## One-click live mode
+
+Think of the switch as a setting on your own call. When you click LIVE, the server checks its key, sends Gemini one tiny request and prepares speech recognition. The same call keeps its history and lead profile. It shows a divider once the change is confirmed. If the quota runs out, the connection moves to mock. Other tabs keep their own modes. The counter shows how many requests this server has reserved over the last 24 hours.

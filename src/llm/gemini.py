@@ -14,9 +14,10 @@ SPOKEN_PROMPT = (
 
 
 class ProviderError(Exception):
-    def __init__(self, status: int, *, local: bool = False) -> None:
+    def __init__(self, status: int, *, local: bool = False, invalid_key: bool = False) -> None:
         self.status = status
         self.local = local
+        self.invalid_key = invalid_key
 
 
 def request_body(
@@ -74,3 +75,28 @@ async def stream_gemini(
                 raise ProviderError(502)
     except (httpx.HTTPError, ValueError, TypeError, AttributeError):
         raise ProviderError(503) from None
+
+
+async def probe_gemini(client: httpx.AsyncClient, key: str, model: str, thinking: str) -> None:
+    body = request_body("Reply OK.", thinking)
+    del body["systemInstruction"]
+    body["generationConfig"]["maxOutputTokens"] = 8
+    try:
+        response = await client.post(
+            f"{API}{model}:generateContent", headers={"x-goog-api-key": key}, json=body
+        )
+    except httpx.TimeoutException:
+        raise TimeoutError from None
+    except httpx.HTTPError:
+        raise ProviderError(503) from None
+    if response.status_code != 200:
+        raise ProviderError(
+            response.status_code, invalid_key=b'"API_KEY_INVALID"' in response.content
+        )
+    try:
+        parts = response.json()["candidates"][0]["content"]["parts"]
+        if any(part.get("text", "").strip() and not part.get("thought") for part in parts):
+            return
+    except (KeyError, IndexError, ValueError, TypeError, AttributeError):
+        pass
+    raise ProviderError(502)

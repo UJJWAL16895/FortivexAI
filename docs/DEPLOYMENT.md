@@ -37,3 +37,9 @@ demo.example.com {
 [UNKNOWN] Public hosting and proxy authentication have not been deployed in this phase. Both Windows local and Docker remain the supported evaluation paths.
 
 The demo CRM uses SQLite and the Compose volume retains its fictional leads and appointment slots across restarts. The default native database is data/runtime/crm.sqlite3. Set CRM_PATH to an isolated file when running the browser smoke. SQLite also retains analyzed call reports and metrics across local restarts. The in-process analysis queue is temporary. For public mock or an access-code-gated live preview, follow DEPLOY_STEPS.md. Free hosts can erase the local database on restart.
+
+## Switching modes during a call
+
+For localhost, keep the real key and verified model names in the ignored server .env. Start the app and use the cockpit's LIVE button. AGENT_MODE supplies the default for a fresh connection. A saved LIVE preference goes through readiness again. Use the existing setup --voice-models command to cache Whisper before the interview. A local cache miss uses Gemini transcription. The process-local rolling Gemini budget includes probes, text requests and cloud voice calls, including retries.
+
+Hosted previews keep PUBLIC_LIVE_ENABLED=false by default. To allow the evaluator to switch, set PUBLIC_DEMO=true, PUBLIC_LIVE_ENABLED=true and a strong PUBLIC_ACCESS_CODE, and provide the server key and verified model. You can leave AGENT_MODE=mock so visitors explicitly choose LIVE. The public gate checks the access cookie before opening the socket and applies the existing per-IP and global limits to the mode frame. Hosted voice uses Gemini. Local verification is recorded in STEP-021.

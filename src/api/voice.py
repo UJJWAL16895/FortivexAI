@@ -8,6 +8,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, StringConstraints
 
+from src.api.live_mode import ConnectionMode
 from src.core.settings import Settings
 from src.llm.gemini import ProviderError
 from src.llm.reply import RequestBudget
@@ -33,6 +34,21 @@ def check_origin(request: Request) -> None:
     origin = request.headers.get("origin")
     if origin is not None and origin != f"{request.url.scheme}://{request.headers.get('host')}":
         raise HTTPException(403, "Unexpected browser origin")
+
+
+def connection_mode(request: Request) -> ConnectionMode | None:
+    handle = request.headers.get("X-Voice-Session")
+    if handle is None:
+        return None
+    state: ConnectionMode | None = request.app.state.voice_sessions.get(handle)
+    if state is None:
+        raise HTTPException(409, "Voice session expired. Reconnect to the console.")
+    return state
+
+
+def voice_budget(request: Request) -> RequestBudget:
+    budget: RequestBudget = request.app.state.replies.budget
+    return budget
 
 
 async def read_wav(request: Request) -> bytes:
@@ -71,7 +87,13 @@ async def transcribe_audio(request: Request, language: Literal["en", "hi"] = "en
     audio = await read_wav(request)
     settings: Settings = request.app.state.settings
     started = monotonic()
-    if settings.agent_mode == "mock":
+    state = connection_mode(request)
+    budget = voice_budget(request)
+    if state and state.mode == "live":
+        usage = budget.usage()
+        if usage["used"] >= usage["cap"]:
+            state.quota_notice = True
+    if (state.mode if state else settings.agent_mode) == "mock" or (state and state.quota_notice):
         return Transcript(
             text=MOCK_TRANSCRIPT,
             provider="mock",
@@ -79,9 +101,12 @@ async def transcribe_audio(request: Request, language: Literal["en", "hi"] = "en
             api_ms=(monotonic() - received) * 1000,
         )
     assert settings.gemini_api_key is not None
-    budget: RequestBudget = request.app.state.voice_budget
     client: httpx.AsyncClient = request.app.state.http
-    providers = ("local", "gemini") if settings.voice_stt == "local" else ("gemini", "local")
+    providers = (
+        ("local", "gemini")
+        if settings.voice_stt == "local" and not (state and state.cloud_stt)
+        else ("gemini", "local")
+    )
     for provider in providers:
         try:
             if provider == "local":
@@ -99,7 +124,11 @@ async def transcribe_audio(request: Request, language: Literal["en", "hi"] = "en
                         audio,
                     )
                 label = settings.gemini_stt_model
-        except (ProviderError, TimeoutError, ImportError, OSError, RuntimeError, ValueError):
+        except ProviderError as error:
+            if state and error.status == 429:
+                state.quota_notice = True
+            continue
+        except (TimeoutError, ImportError, OSError, RuntimeError, ValueError):
             continue
         if text.strip() and len(text) <= 500:
             now = monotonic()
@@ -109,6 +138,13 @@ async def transcribe_audio(request: Request, language: Literal["en", "hi"] = "en
                 latency_ms=(now - started) * 1000,
                 api_ms=(now - received) * 1000,
             )
+    if state and state.quota_notice:
+        return Transcript(
+            text=MOCK_TRANSCRIPT,
+            provider="mock",
+            latency_ms=0,
+            api_ms=(monotonic() - received) * 1000,
+        )
     raise HTTPException(503, "Transcription unavailable. Type your message to continue.")
 
 
@@ -120,10 +156,19 @@ async def transcribe_audio(request: Request, language: Literal["en", "hi"] = "en
 async def speak_sentence(request: Request, sentence: SpeechRequest) -> Response:
     check_origin(request)
     settings: Settings = request.app.state.settings
-    if settings.agent_mode != "live" or settings.voice_tts == "browser":
+    state = connection_mode(request)
+    if (
+        (state.mode if state else settings.agent_mode) != "live"
+        or settings.voice_tts == "browser"
+        or (state is not None and state.quota_notice)
+    ):
         return Response(status_code=204)
     try:
-        budget: RequestBudget = request.app.state.voice_budget
+        budget = (
+            voice_budget(request)
+            if settings.voice_tts == "gemini"
+            else request.app.state.voice_budget
+        )
         budget.reserve(500)
         if settings.voice_tts == "edge":
             audio, first_byte = await edge.synthesize(sentence.text)
@@ -151,6 +196,10 @@ async def speak_sentence(request: Request, sentence: SpeechRequest) -> Response:
                 "X-TTS-First-Byte-Ms": str((monotonic() - started) * 1000),
             },
         )
+    except ProviderError as error:
+        if state and settings.voice_tts == "gemini" and error.status == 429:
+            state.quota_notice = True
+        return Response(status_code=204)
     except Exception:
         # Plug-in service errors can contain URLs or caller text. The browser can synthesize locally.
         return Response(status_code=204)

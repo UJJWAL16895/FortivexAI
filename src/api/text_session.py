@@ -1,6 +1,7 @@
 import asyncio
 import json
 from contextlib import aclosing
+from secrets import token_urlsafe
 from typing import Annotated
 
 from anyio import create_task_group
@@ -8,6 +9,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ConfigDict, StringConstraints, ValidationError
 
 from src.analytics.worker import Call, Insights
+from src.api.live_mode import ConnectionMode, Mode, live_allowed, send_mode, switch_mode
 from src.core.settings import Settings
 from src.crm.conversation import BookingSession
 from src.llm.reply import ReplyPath
@@ -20,6 +22,11 @@ class TextTurn(BaseModel):
     text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
     simulate_failure: bool = False
     end_call: bool = False
+
+
+class ModeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    mode: Mode
 
 
 async def text_session(socket: WebSocket) -> None:
@@ -71,12 +78,19 @@ async def run_turns(socket: WebSocket, incoming: asyncio.Queue[dict[str, object]
     booking = BookingSession(socket.app.state.crm)
     insights: Insights = socket.app.state.insights
     call = Call()
+    state = ConnectionMode(settings.agent_mode, cloud_stt=settings.voice_stt == "gemini")
+    voice_session = token_urlsafe(24)
+    socket.app.state.voice_sessions[voice_session] = state
     try:
         await socket.send_json(
             {
                 "type": "ready",
                 "mode": settings.agent_mode,
                 "allow_fallback_demo": settings.allow_fallback_demo,
+                "voice_session": voice_session,
+                "live_allowed": live_allowed(settings),
+                "model": settings.gemini_model if state.mode == "live" else None,
+                "quota": replies.budget.usage() if isinstance(replies, ReplyPath) else None,
             }
         )
         while True:
@@ -85,7 +99,12 @@ async def run_turns(socket: WebSocket, incoming: asyncio.Queue[dict[str, object]
             try:
                 if not isinstance(raw, str) or len(raw) > 4096:
                     raise ValueError("Expected a text frame up to 4096 characters")
-                turn = TextTurn.model_validate(json.loads(raw))
+                payload = json.loads(raw)
+                if isinstance(payload, dict) and "mode" in payload:
+                    request = ModeRequest.model_validate(payload)
+                    await switch_mode(socket, state, request.mode, replies)
+                    continue
+                turn = TextTurn.model_validate(payload)
             except (ValidationError, ValueError, RecursionError):
                 await socket.send_json({"type": "error", "text": "Enter 1–500 characters."})
                 continue
@@ -103,6 +122,15 @@ async def run_turns(socket: WebSocket, incoming: asyncio.Queue[dict[str, object]
                 )
                 await socket.close()
                 return
+            starting_live = state.mode == "live"
+            if starting_live and not turn.simulate_failure:
+                usage = replies.budget.usage()
+                if state.quota_notice or usage["used"] >= usage["cap"]:
+                    state.mode = "mock"
+                    state.quota_notice = False
+                    await send_mode(
+                        socket, state, replies, "quota", "Live quota reached, using mock"
+                    )
             booking_reply = (
                 await asyncio.to_thread(booking.handle, turn.text, session)
                 if not turn.simulate_failure
@@ -153,11 +181,16 @@ async def run_turns(socket: WebSocket, incoming: asyncio.Queue[dict[str, object]
             else:
                 async with aclosing(
                     replies.stream(
-                        turn.text, simulate=turn.simulate_failure, history=tuple(session.history)
+                        turn.text,
+                        simulate=turn.simulate_failure,
+                        history=tuple(session.history),
+                        mode=state.mode,
                     )
                 ) as events:
                     async for event in events:
                         await socket.send_json(event)
+                        if starting_live and not turn.simulate_failure and event.get("code") == 429:
+                            state.quota_notice = True
                         if event["type"] == "reply" and not turn.simulate_failure:
                             session.remember(turn.text, event["text"])
             if booking.contact and not turn.simulate_failure:
@@ -177,7 +210,18 @@ async def run_turns(socket: WebSocket, incoming: asyncio.Queue[dict[str, object]
                     else None,
                 }
             )
+            if starting_live and not turn.simulate_failure:
+                usage = replies.budget.usage()
+                if state.mode == "live" and (state.quota_notice or usage["used"] >= usage["cap"]):
+                    state.mode = "mock"
+                    state.quota_notice = False
+                    await send_mode(
+                        socket, state, replies, "quota", "Live quota reached, using mock"
+                    )
+                elif state.mode == "live":
+                    await socket.send_json({"type": "quota", "quota": usage})
     except WebSocketDisconnect:
         return
     finally:
+        socket.app.state.voice_sessions.pop(voice_session, None)
         insights.submit(call, None)

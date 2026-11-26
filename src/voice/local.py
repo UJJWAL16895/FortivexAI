@@ -31,17 +31,20 @@ async def recognize(audio: bytes, language: str, name: str) -> str:
     return await asyncio.to_thread(_recognize, audio, language, name)
 
 
-async def warm() -> None:
+async def warm() -> bool:
+    available = True
     for name in ("base", "small"):
         started = perf_counter()
         try:
             await asyncio.to_thread(model, name)
         except (ImportError, OSError, RuntimeError, ValueError):
+            available = False
             logging.getLogger("uvicorn.error").warning(
                 "Whisper %s unavailable in local cache. Use setup --voice-models. Gemini fallback remains available.",
                 name,
             )
             continue
         logging.getLogger("uvicorn.error").info(
-            "Whisper %s loaded before serving in %.0f ms.", name, (perf_counter() - started) * 1000
+            "Whisper %s ready in %.0f ms.", name, (perf_counter() - started) * 1000
         )
+    return available

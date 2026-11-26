@@ -30,6 +30,15 @@
 .connection-status .connected { background:var(--glow); box-shadow:0 0 .7rem #75e5d475; }
 .cockpit .mode { font-weight:800; letter-spacing:.06em; color:var(--amber); background:#382c24; border:1px solid #805d33; font-size:.78rem; padding:.35rem .6rem; }
 .cockpit .mode[data-mode=live] { color:var(--glow); background:#112c30; border-color:#387a78; }
+.live-toggle { display:inline-flex; gap:.18rem; padding:.17rem; border:1px solid #455275; background:#10182d; border-radius:1.05rem; }
+.cockpit .live-toggle button { min-height:1.85rem; padding:.17rem .47rem; border:1px solid transparent; border-radius:.8rem; color:var(--muted); background:transparent; font-size:.75rem; font-weight:800; }
+.live-toggle button[aria-pressed=true][data-choice=mock] { color:var(--amber); border-color:#956b3c; background:#382c24; box-shadow:0 0 .7rem #ffd18a25; }
+.live-toggle button[aria-pressed=true][data-choice=live] { color:var(--glow); border-color:#498a85; background:#112c30; box-shadow:0 0 .7rem #75e5d439; }
+.mode-ribbon { display:flex; flex-wrap:wrap; gap:.1rem .85rem; }
+.mode-ribbon span { font-variant-numeric:tabular-nums; }
+.mode-ribbon[data-state=live] { color:var(--glow); background:#112530; }
+.mode-ribbon:is([data-state=checking],[data-state=warming]) b { animation:cockpit-orbit .65s infinite alternate; }
+.mode-divider { text-align:center; color:var(--muted); font-size:.82rem; border-top:1px solid var(--line); padding-top:.4rem; }
 .language-picker { position:relative; }
 .language-picker::after { content:''; width:.42rem; height:.42rem; position:absolute; top:.76rem; right:.7rem; transform:rotate(45deg); border-right:1px solid currentColor; border-bottom:1px solid currentColor; pointer-events:none; }
 .language-picker select { appearance:none; background:var(--quiet); color:var(--ink); border:1px solid var(--line); border-radius:.52rem; padding:.35rem 1.6rem .35rem .55rem; }

@@ -42,7 +42,7 @@ class Settings(BaseSettings):
             self.allow_fallback_demo = False
             if not self.public_live_enabled:
                 self.agent_mode = "mock"
-            if self.agent_mode == "live":
+            if self.public_live_enabled:
                 access = (
                     self.public_access_code.get_secret_value() if self.public_access_code else ""
                 )

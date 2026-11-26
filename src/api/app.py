@@ -72,6 +72,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="ShelfPilot Sales Agent", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.replies = ReplyPath(settings)
+    app.state.voice_sessions = {}
     app.state.knowledge = Knowledge.load()
     app.state.crm = CRM(Path(settings.crm_path))
     app.state.insights = Insights(ReportStore(Path(settings.crm_path)))

@@ -31,3 +31,7 @@ The shared palette is in styles.css. The layout, stage colors, labels and contro
 Sentiment and BANT come from the latest **saved** report after a call ends. The current protocol supplies neither live analysis events nor a report ID that would associate that snapshot with a socket on a shared server. The existing booking reply supplies the time and timezone but no separate receipt ID. The cockpit shows the date/time and labels the missing ID. Roman Hinglish has no reliable protocol label. The transcript labels mixed script and explicit microphone hints where available.
 
 Icons are small inline SVG paths in cockpitIcons.jsx. They add no dependency, network reference or accessible name to decorative icons.
+
+## One-click LIVE and MOCK
+
+Console.jsx renders the segmented buttons and the status ribbon. It sends one mode request on the open socket. It disables the mic during the check and adds a divider only after the server confirms a mode change. The ribbon shows the probe round-trip, latest Gemini first text and the server's rolling counter. CSS in cockpit.css defines mode colors and honors reduced motion. Screenshots and real smoke results are in STEP-021.

@@ -6,6 +6,7 @@ import { Icon } from './cockpitIcons.jsx'
 import './cockpit.css'
 
 const Records = lazy(() => import('./CockpitRecords.jsx'))
+const MODE_PREFERENCE = 'shelfpilot:preferred-mode'
 const initialMessage = {
   role: 'agent',
   text: 'Hi, I’m the ShelfPilot demo agent. What would you like to know about managing inventory across your stores?',
@@ -22,6 +23,12 @@ export default function App() {
   const [latency, setLatency] = useState(null)
   const [mode, setMode] = useState('')
   const [configuredMode, setConfiguredMode] = useState('')
+  const [modePhase, setModePhase] = useState('')
+  const [liveAllowed, setLiveAllowed] = useState(false)
+  const [liveModel, setLiveModel] = useState('')
+  const [liveFirstText, setLiveFirstText] = useState(null)
+  const [probeMs, setProbeMs] = useState(null)
+  const [quota, setQuota] = useState(null)
   const [provider, setProvider] = useState('')
   const [trace, setTrace] = useState([])
   const [partial, setPartial] = useState('')
@@ -65,6 +72,8 @@ export default function App() {
   const callVersion = useRef(0)
   const ending = useRef(false)
   const policyUsed = useRef(false)
+  const voiceSession = useRef(null)
+  const activeMode = useRef('')
 
   useEffect(() => {
     const tick = () => {
@@ -100,10 +109,60 @@ export default function App() {
         setStatus('Connected')
         setMode(event.mode)
         setConfiguredMode(event.mode)
+        activeMode.current = event.mode
+        voiceSession.current = event.voice_session
+        setLiveAllowed(Boolean(event.live_allowed))
+        setLiveModel(event.model || '')
+        setLiveFirstText(null)
+        setProbeMs(null)
+        setQuota(event.quota ?? null)
         setProvider(event.mode === 'mock' ? 'Deterministic mock' : 'Gemini')
         setAllowFallback(event.allow_fallback_demo)
         setLead(null)
         setNeedsConfirmation(false)
+        try {
+          const choice = localStorage.getItem(MODE_PREFERENCE)
+          if (event.live_allowed && (choice === 'live' || (choice === 'mock' && choice !== event.mode))) {
+            setModePhase(choice === 'live' ? 'checking' : 'switching')
+            client.send(JSON.stringify({ mode: choice }))
+          }
+        } catch {
+          // Storage can be disabled. The server default still works.
+        }
+        return
+      }
+      if (event.type === 'quota') {
+        setQuota(event.quota)
+        return
+      }
+      if (event.type === 'mode_status') {
+        setQuota(event.quota)
+        if (event.probe_ms != null) setProbeMs(event.probe_ms)
+        if (['checking', 'warming'].includes(event.phase)) {
+          setModePhase(event.phase)
+          if (event.model) setLiveModel(event.model)
+          return
+        }
+        setModePhase('')
+        if (activeMode.current !== event.mode) {
+          const time = Date.now()
+          const label = new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          setMessages(items => [...items, { role: 'divider', text: 'Switched to ' + event.mode.toUpperCase() + ' at ' + label }])
+          setLiveFirstText(null)
+          setProvider(event.model || 'Deterministic mock')
+        }
+        activeMode.current = event.mode
+        setConfiguredMode(event.mode)
+        setMode(event.mode)
+        if (event.model || event.phase !== 'failed') setLiveModel(event.model || '')
+        if (event.phase === 'ready' || event.phase === 'quota') {
+          try {
+            localStorage.setItem(MODE_PREFERENCE, event.mode)
+          } catch {
+            // The mode remains confirmed for this connection.
+          }
+        }
+        if (event.message) setToast(event.message)
         return
       }
       if (event.type === 'profile') {
@@ -123,8 +182,12 @@ export default function App() {
         if (event.status === 'failed' || event.status === 'fallback') setToast(event.provider + ' failed. Checking the fallback.')
         if (event.status === 'active') {
           setProvider(event.model)
-          replyMode.current = event.provider === 'mock' ? 'mock' : 'live'
-          if (!['policy', 'session', 'knowledge', 'booking'].includes(event.provider)) setMode(replyMode.current)
+          if (event.provider === 'Gemini A' || event.provider === 'Gemini B') {
+            setLiveModel(event.model)
+            replyMode.current = 'live'
+          } else if (event.provider === 'mock') {
+            replyMode.current = 'mock'
+          }
         }
         return
       }
@@ -134,6 +197,7 @@ export default function App() {
       }
       if (event.type === 'first_text') {
         setLatency(event.latency_ms)
+        if (replyMode.current === 'live') setLiveFirstText(event.latency_ms)
         return
       }
       if (event.type === 'sentence') {
@@ -154,6 +218,7 @@ export default function App() {
         citation: event.citation,
         time: Date.now(),
         guarded,
+        execution: event.mode === 'mock' || event.mode === 'live' ? event.mode : activeMode.current,
       }])
       setPartial('')
       if (event.type === 'reply') setLatency(event.latency_ms)
@@ -171,6 +236,8 @@ export default function App() {
       playback.current?.stop()
       playback.current = null
       setStatus('Disconnected')
+      setModePhase('')
+      voiceSession.current = null
       setPending(false)
       setPartial('')
       setSpeaking(false)
@@ -206,6 +273,7 @@ export default function App() {
     }
     voiceSentAt.current = voicePlayback ? performance.now() : null
     policyUsed.current = false
+    replyMode.current = activeMode.current || 'mock'
     callStarted.current ??= performance.now()
     socket.current.send(JSON.stringify({ text: message, simulate_failure: simulateFailure }))
     setTrace([])
@@ -265,14 +333,14 @@ export default function App() {
         try {
           const { bytes, endpointMs } = await toWav(parts, recorder.mimeType, context.current)
           const encodedAt = performance.now()
-          const transcript = await transcribe(bytes, voiceLanguage)
+          const transcript = await transcribe(bytes, voiceLanguage, voiceSession.current)
           setVoiceInfo({ stt: transcript.provider, sttMs: transcript.latency_ms,
             endpointMs, encodeMs: encodedAt - stoppedAt, transferMs: transcript.transferMs })
           const voicePlayback = createPlayback(context.current, (source, ttsFirstByteMs) => setVoiceInfo(info => ({
             ...info, tts: info.tts ?? source,
             ttsFirstByteMs: info.ttsFirstByteMs ?? ttsFirstByteMs,
             audioMs: info.audioMs ?? Math.round(performance.now() - stoppedAt),
-          })), setVoiceError, setSpeaking)
+          })), setVoiceError, setSpeaking, voiceSession.current)
           if (!send(transcript.text, false, voicePlayback)) setVoiceError('Reconnect and record again.')
         } catch (error) {
           setVoiceError(error.message || 'Recording failed. Try typing your message.')
@@ -301,6 +369,16 @@ export default function App() {
   function reconnect() {
     setStatus('Connecting')
     setConnection(value => value + 1)
+  }
+
+  function chooseMode(target) {
+    if (target === configuredMode || modePhase || pending || mic !== 'idle' ||
+        socket.current?.readyState !== WebSocket.OPEN || (target === 'live' && !liveAllowed)) return
+    playback.current?.stop()
+    setSpeaking(false)
+    setModePhase(target === 'live' ? 'checking' : 'switching')
+    setProbeMs(null)
+    socket.current.send(JSON.stringify({ mode: target }))
   }
 
   function resetCall() {
@@ -416,7 +494,7 @@ export default function App() {
     : speaking ? 'Speaking'
     : voiceError ? 'Error'
     : pending ? 'Thinking' : 'Idle'
-  const busy = pending || mic !== 'idle' || status !== 'Connected' || analyzing
+  const busy = pending || mic !== 'idle' || status !== 'Connected' || analyzing || Boolean(modePhase)
   const composer = <form className="cockpit-composer" onSubmit={event => {
     event.preventDefault()
     if (!busy) send(draft)
@@ -445,7 +523,13 @@ export default function App() {
         <a href={'/#' + id} key={id} aria-current={id === 'live' ? 'location' : undefined}>{label}</a>)}</nav>
       <div className="cockpit-status">
         <span className="connection-status" role="status"><i className={status === 'Connected' ? 'connected' : ''}/>{status}</span>
-        <span className="mode" data-mode={mode}>{mode ? mode.toUpperCase() : 'CONNECTING'}</span>
+        <div className="live-toggle" role="group" aria-label="Provider mode"
+          title="LIVE uses real Gemini replies (free tier, rate limited). MOCK is deterministic.">
+          {['mock', 'live'].map(target => <button key={target} type="button" data-choice={target}
+            aria-pressed={configuredMode === target} disabled={busy || (target === 'live' && !liveAllowed)}
+            onClick={() => chooseMode(target)}>{target.toUpperCase()}</button>)}
+        </div>
+        <span className="mode sr-only" data-mode={mode}>{mode ? mode.toUpperCase() : 'CONNECTING'}</span>
         <label className="language-picker"><span className="sr-only">Microphone language</span>
           <select id="voice-language" value={voiceLanguage} onChange={e => setVoiceLanguage(e.target.value)} disabled={mic !== 'idle'}>
             <option value="en">EN · English</option><option value="hi">हिं · Hindi</option>
@@ -454,8 +538,16 @@ export default function App() {
         <span className="call-clock" aria-label={'Call duration ' + formatClock(elapsed)}>{formatClock(elapsed)}</span>
       </div>
     </header>
-    {configuredMode === 'mock' && <div className="mock-ribbon">Mock mode: deterministic replies</div>}
-    {configuredMode === 'live' && mode === 'mock' && <div className="mock-ribbon">Mock fallback: deterministic reply</div>}
+    <div className="mock-ribbon mode-ribbon" data-state={modePhase || configuredMode} role="status">
+      {modePhase === 'checking' ? <><b>CHECKING</b> Checking Gemini…</>
+        : modePhase === 'warming' ? <><b>WARMING</b> Warming up voice…</>
+        : modePhase === 'switching' ? 'Switching to mock…'
+        : configuredMode === 'live' ? <><b>LIVE</b> {liveModel} · Latest Gemini first text {liveFirstText == null ? '—' : liveFirstText.toFixed(2) + ' ms'}</>
+        : configuredMode === 'mock' ? 'Mock mode: deterministic replies' : 'Connecting to ShelfPilot…'}
+      {probeMs != null && <span>Readiness · {liveModel} · {probeMs.toFixed(2)} ms</span>}
+      {quota && <span title="Local process counter for provider requests over the last 24 hours">Live calls used today: {quota.used} / {quota.cap}</span>}
+      {publicMode?.public && !liveAllowed && <span>{publicMode.locked && status !== 'Connected' ? 'Enter the evaluator access code to connect.' : 'Public live switching is disabled.'}</span>}
+    </div>
     {publicMode?.public && <aside className="public-mode">
       <strong>Public preview · {publicMode.mode.toUpperCase()}</strong> Use fictional data.
       {publicMode.locked && status !== 'Connected' && <form onSubmit={unlock}>

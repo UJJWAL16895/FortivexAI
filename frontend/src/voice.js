@@ -42,11 +42,11 @@ export async function toWav(parts, mimeType, context) {
   return { bytes, endpointMs: (samples.length - lastSpeech) / 16 }
 }
 
-export async function transcribe(bytes, language) {
+export async function transcribe(bytes, language, voiceSession) {
   const started = performance.now()
   const response = await fetch('/api/voice/transcribe?language=' + language, {
     method: 'POST',
-    headers: { 'Content-Type': 'audio/wav' },
+    headers: { 'Content-Type': 'audio/wav', ...(voiceSession && { 'X-Voice-Session': voiceSession }) },
     body: bytes,
   })
   const result = await response.json()
@@ -54,7 +54,7 @@ export async function transcribe(bytes, language) {
   return { ...result, transferMs: Math.max(0, performance.now() - started - result.api_ms) }
 }
 
-export function createPlayback(context, onStart, onError, onSpeaking = () => {}) {
+export function createPlayback(context, onStart, onError, onSpeaking = () => {}, voiceSession) {
   const abort = new AbortController()
   let queue = Promise.resolve()
   let source
@@ -90,7 +90,7 @@ export function createPlayback(context, onStart, onError, onSpeaking = () => {})
     } else if (mode !== 'mock') {
       response = await fetch('/api/voice/speak', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(voiceSession && { 'X-Voice-Session': voiceSession }) },
         body: JSON.stringify({ text }),
         signal: abort.signal,
       })

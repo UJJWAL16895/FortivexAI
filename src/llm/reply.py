@@ -4,7 +4,7 @@ from collections import deque
 from collections.abc import AsyncGenerator
 from contextlib import aclosing
 from time import monotonic
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 import httpx
 
@@ -41,17 +41,22 @@ class RequestBudget:
         self.recent_tokens: deque[tuple[float, int]] = deque()
         self.cooldown = 0.0
 
+    def usage(self) -> dict[str, int]:
+        now = monotonic()
+        while self.calls and self.calls[0] <= now - 86400:
+            self.calls.popleft()
+        return {"used": len(self.calls), "cap": self.daily}
+
     def reserve(self, estimated_tokens: int) -> None:
         now = monotonic()
         self.tokens = min(3.0, self.tokens + (now - self.last) * self.rpm / 60)
         self.last = now
-        while self.calls and self.calls[0] <= now - 86400:
-            self.calls.popleft()
+        usage = self.usage()
         while self.recent_tokens and self.recent_tokens[0][0] <= now - 60:
             self.recent_tokens.popleft()
         if (
             now < self.cooldown
-            or len(self.calls) >= self.daily
+            or usage["used"] >= usage["cap"]
             or self.tokens < 1
             or sum(tokens for _, tokens in self.recent_tokens) + estimated_tokens > self.tpm
         ):
@@ -112,7 +117,12 @@ class ReplyPath:
             self.cache[(model, text)] = (monotonic(), "".join(parts))
 
     async def stream(
-        self, text: str, *, simulate: bool = False, history: tuple[tuple[str, str], ...] = ()
+        self,
+        text: str,
+        *,
+        simulate: bool = False,
+        history: tuple[tuple[str, str], ...] = (),
+        mode: Literal["mock", "live"] | None = None,
     ) -> AsyncGenerator[dict[str, Any]]:
         settings = self.settings
         if PRODUCT_QUESTION.search(text) and not simulate:
@@ -139,7 +149,7 @@ class ReplyPath:
         )
         candidates = (
             [(label, model, thinking) for label, model, thinking in slots if model or simulate]
-            if simulate or settings.agent_mode == "live"
+            if simulate or (mode or settings.agent_mode) == "live"
             else []
         )
         started = monotonic()

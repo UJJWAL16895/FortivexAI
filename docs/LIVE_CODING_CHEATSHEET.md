@@ -27,3 +27,8 @@ Evidence: [STEP-014 scratch run](reports/STEP-014.md). It ran ten focused checks
 | Change the accent color | In styles.css, edit the shared accent and glow tokens. Verify focus and text contrast on both routes. |
 | Add a quick-scenario chip | In cockpitData.js, add a message to scenarios. Check the label, what send submits and how it reads at mobile width. |
 | Change lead-score colors | In cockpit.css, edit rating rules for Hot, Warm and Cold. Leave the score and rating from the saved report intact. |
+
+| Live toggle recipe | Where to edit |
+|---|---|
+| Change the readiness check | Edit probe_gemini in src/llm/gemini.py and its safe error handling in src/api/live_mode.py. Keep one bounded request and use the fake integration fixture to verify failure behavior. |
+| Add a third mode | Extend Mode in src/api/live_mode.py, ModeRequest validation and the explicit state transition. Define the provider and voice behavior before adding a Console.jsx button, then test cross-tab isolation. |

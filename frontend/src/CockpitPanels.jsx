@@ -45,13 +45,15 @@ export function CallPanel({ mic, stage, micLevel, recordingMs, busy, toggleMic, 
 }
 
 function ChatMessage({ entry, openSource }) {
-  const { role, text, mode, citation, time, language, guarded } = entry
+  const { role, text, mode, citation, time, language, guarded, execution } = entry
+  if (role === 'divider') return <p className="mode-divider">{text}</p>
   const slot = bookingTime(mode, text)
   const languageTag = receivedLanguage(text) || language
   return <div className={'message ' + role}>
     <div className="message-meta">
       <b className="message-avatar" aria-hidden="true">{role === 'buyer' ? 'Y' : role === 'notice' ? '!' : 'S'}</b>
       <span>{role === 'buyer' ? 'You' : role === 'notice' ? 'Session' : 'ShelfPilot'}{mode && ' · ' + mode.toUpperCase()}</span>
+      {execution && execution !== mode && <span title="Connection mode for this reply">{execution.toUpperCase()} session</span>}
       {time && <time dateTime={new Date(time).toISOString()}>{new Date(time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</time>}
       {languageTag && <span>{languageTag}</span>}
     </div>

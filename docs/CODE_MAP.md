@@ -50,3 +50,7 @@
 - Display a turn → CockpitPanels.jsx → Conversation and ChatMessage. A citation opens the exact approved reply excerpt. A confirmed booking reply renders the receipt.
 - End the call → Console.jsx → endCall sends the existing end frame and reads the existing Insights endpoint for a new saved report. The intelligence cards display the latest persisted report.
 - Open workspace records → Console.jsx → openRecords fetches CRM or Insights and lazy-loads CockpitRecords.jsx.
+
+## Connection mode
+
+Console.jsx → chooseMode → WebSocket mode frame → text_session.py → live_mode.py / switch_mode. The handler reserves a provider request, probes Gemini in llm/gemini.py, then warms cached Whisper in voice/local.py. The resulting state belongs to the socket. The voice HTTP routes resolve X-Voice-Session to that state. ReplyPath.stream accepts the connection's mode and keeps the process-wide budget.

@@ -35,3 +35,7 @@ Use the keyless run from README first. Check the latest audit, physical micropho
 ## Console cockpit
 
 Use pre-console-ui to restore the earlier console, or use demo-cockpit after the cockpit release gates pass. The accepted submission checkpoint remains available as final-submission. See STEP-020 for the browser checks, Lighthouse, screenshots and backend data limits.
+
+## Live-mode checkpoint
+
+See STEP-021 for the switch checks, screenshots and real smoke evidence. pre-live-toggle and demo-cockpit preserve the earlier cockpit. demo-live-toggle is the release tag for the verified switch.
