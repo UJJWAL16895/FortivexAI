@@ -128,8 +128,8 @@ def test_checked_output_keeps_safe_line_and_cites_hindi_price(monkeypatch, tmp_p
         socket.receive_json()
         events = turn(socket, "Is the Enterprise price $1?")
         reply = next(event for event in events if event["type"] == "reply")
-        assert reply["text"].startswith("Happy to help!")
-        assert reply["approved_follow_up"]
+        assert reply["origin"] == "approved"
+        assert "Happy to help!" not in reply["text"]
         assert not any(
             "40%" in event.get("text", "") or "$1" in event.get("text", "") for event in events
         )

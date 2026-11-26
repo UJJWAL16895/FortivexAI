@@ -179,8 +179,8 @@ export default function App() {
       }
       if (event.type === 'analysis') {
         setMessages(items => items.map(item => item.turnId === event.turn_id
-          ? { ...item, analysis: event.status === 'ready' ? event.sentiment : 'unavailable' } : item))
-        if (event.status === 'ready') setLiveAnalysis({ score: event.score, rating: event.rating, reasons: event.reasons })
+          ? { ...item, analysis: event } : item))
+        if (['analyzed', 'mock'].includes(event.status)) setLiveAnalysis({ score: event.score, rating: event.rating, reasons: event.reasons, status: event.status })
         return
       }
       if (event.type === 'provider') {
@@ -221,7 +221,7 @@ export default function App() {
       if (event.type !== 'reply' && event.type !== 'error') return
       if (event.type === 'error') {
         setMessages(items => items.map(item => item.turnId === nextTurn.current && !item.analysis
-          ? { ...item, analysis: 'unavailable' } : item))
+          ? { ...item, analysis: { status: 'not_analyzed' } } : item))
       }
       const guarded = policyUsed.current
       setMessages(items => [...items, {
@@ -233,6 +233,7 @@ export default function App() {
           : event.origin === 'approved' ? 'Scripted/approved phrase'
           : event.citation ? 'Knowledge card' : event.mode === 'mock' ? 'Mock' : 'Scripted/approved phrase',
         passage: event.passage,
+        booking: event.booking,
         approvedFollowUp: event.approved_follow_up,
         time: Date.now(),
         guarded,
@@ -603,7 +604,7 @@ export default function App() {
           voiceNote={configuredMode === 'live' ? 'Microphone audio may be sent to Gemini for transcription.' : 'Mock voice uses a scripted transcript.'}
           voiceError={voiceError}/>
         <Intelligence report={liveAnalysis || report} live={Boolean(liveAnalysis)}
-          sentiment={messages.filter(item => item.turnId && item.analysis && item.analysis !== 'unavailable').map(item => item.analysis)}
+          sentiment={messages.filter(item => item.turnId && item.analysis?.sentiment).map(item => item.analysis)}
           analyzing={messages.some(item => item.turnId && !item.analysis) && status === 'Connected'} lead={lead}
           needsConfirmation={needsConfirmation} confirmed={confirmed} latency={latency} voiceInfo={voiceInfo}
           provider={provider} trace={trace} allowFallback={allowFallback} busy={busy}

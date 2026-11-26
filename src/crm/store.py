@@ -94,6 +94,24 @@ class CRM:
             owner = db.execute("SELECT contact FROM bookings WHERE slot=?", (slot,)).fetchone()
             return bool(owner and owner[0] == contact)
 
+    def available_near(self, preferred: datetime) -> list[str]:
+        """Return the requested time, or the two closest future half-hour alternatives."""
+        now = datetime.now(IST)
+        with closing(self.connect()) as db:
+            occupied = {row[0] for row in db.execute("SELECT slot FROM bookings")}
+        requested = preferred.isoformat()
+        if requested not in occupied and preferred > now and 9 <= preferred.hour < 19:
+            return [requested]
+        anchor = preferred.replace(minute=30 if preferred.minute >= 30 else 0)
+        alternatives = [anchor + timedelta(minutes=30 * step) for step in range(-48, 49)]
+        valid = [
+            slot
+            for slot in alternatives
+            if slot > now and 9 <= slot.hour < 19 and slot.isoformat() not in occupied
+        ]
+        valid.sort(key=lambda slot: (abs(slot - preferred), slot))
+        return [slot.isoformat() for slot in valid[:2]]
+
     def snapshot(self) -> dict[str, list[dict[str, object]]]:
         with closing(self.connect()) as db:
             leads = [

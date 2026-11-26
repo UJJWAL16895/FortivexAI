@@ -162,3 +162,9 @@ The browser adds an Analyzing marker to each buyer message. When the background 
 Every LIVE buyer turn goes to Gemini when the provider budget permits it. The model sees the recent conversation, the lead profile and any relevant reviewed passages. It can greet you, answer a yes or no in context, or ask about your stores. It marks which sentences make claims. The server checks the generated sentences before they reach the screen or speaker. A product claim needs an exact passage from the reviewed cards. When a claim fails, the rest of the reply stays. A provider outage has its own message and switches the call to MOCK. MOCK can show the rehearsed workflow with deterministic replies. It cannot understand free conversation.
 
 Gemini proposes application actions. The existing booking and lead checks still authorize them. Saying yes to a booking offer can prompt for a confirmation, and the booking requires the explicit confirmation command.
+
+## Why a LIVE booking waits for a real receipt
+
+Gemini reads the buyer’s message and sends the server an intent, contact and preferred time. The server checks the phone or email, finds a free time and offers it. An affirmative answer to that offer can reserve the slot. The receipt comes from SQLite after the transaction succeeds. The pending card shows what is still needed. A model sentence that claims an unsupported fact or completed transaction is replaced with one approved response.
+
+The same Gemini request reports how the buyer feels, whether they are ready to buy and which qualification details they gave. The background worker posts the result after each reply. A missing result says Not analyzed. In MOCK, the existing demo rules are visibly labeled. A decline gets one gentle follow-up question. A buying signal can lead into a demo offer with the cited terms.

@@ -9,11 +9,13 @@ from anyio import create_task_group
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError
 
+from src.analytics.core import TurnAnalysis
 from src.analytics.worker import Call, Insights
 from src.api.conversation import live_turn
 from src.api.live_mode import ConnectionMode, Mode, live_allowed, send_mode, switch_mode
 from src.core.settings import Settings
 from src.crm.conversation import BookingSession
+from src.crm.live_booking import LiveBooking
 from src.llm.reply import ReplyPath
 from src.memory.session import LeadSession
 from src.rag.index import Knowledge
@@ -97,6 +99,7 @@ async def run_turns(
     knowledge: Knowledge = socket.app.state.knowledge
     session = LeadSession()
     booking = BookingSession(socket.app.state.crm)
+    live_booking = LiveBooking(socket.app.state.crm)
     insights: Insights = socket.app.state.insights
     call = Call()
     state = ConnectionMode(settings.agent_mode, cloud_stt=settings.voice_stt == "gemini")
@@ -152,8 +155,11 @@ async def run_turns(
                     await send_mode(
                         socket, state, replies, "quota", "Live quota reached, using mock"
                     )
+            analysis: str | TurnAnalysis = turn.text
             if state.mode == "live" and not turn.simulate_failure:
-                await live_turn(socket, turn.text, state, replies, knowledge, session, booking)
+                analysis = await live_turn(
+                    socket, turn.text, state, replies, knowledge, session, live_booking, call
+                )
             else:
                 booking_reply = (
                     await asyncio.to_thread(booking.handle, turn.text, session)
@@ -225,17 +231,24 @@ async def run_turns(
                                 state.quota_notice = True
                             if event["type"] == "reply" and not turn.simulate_failure:
                                 session.remember(turn.text, event["text"])
-            if booking.contact and not turn.simulate_failure:
+            contact = live_booking.contact if starting_live else booking.contact
+            if contact and not turn.simulate_failure:
                 fields = session.profile.model_dump(
                     mode="json", exclude_none=True, exclude={"language"}
                 )
-                await asyncio.to_thread(booking.crm.save, booking.contact, fields)
+                await asyncio.to_thread(booking.crm.save, contact, fields)
             result = None
             if not turn.simulate_failure:
-                call.booked = booking.booked
+                call.booked = call.booked or booking.booked or bool(live_booking.receipt)
                 if turn.turn_id is not None:
                     result = asyncio.get_running_loop().create_future()
-                insights.submit(call, turn.text, result)
+                insights.submit(
+                    call,
+                    analysis
+                    if not starting_live or isinstance(analysis, TurnAnalysis)
+                    else TurnAnalysis(status="not_analyzed"),
+                    result,
+                )
             await socket.send_json(
                 {
                     "type": "profile",

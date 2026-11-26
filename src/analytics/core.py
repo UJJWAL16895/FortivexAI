@@ -24,8 +24,12 @@ POSITIVE = re.compile(r"\b(?:great|thanks|thank you|sounds good|excited)\b|เคงเค
 
 
 class TurnAnalysis(BaseModel):
-    sentiment: Sentiment
-    signals: list[Literal["budget", "authority", "need", "timeline"]]
+    sentiment: Sentiment | None = None
+    signals: list[Literal["budget", "authority", "need", "timeline"]] = Field(default_factory=list)
+    score: float | None = Field(default=None, ge=-1, le=1)
+    confidence: float | None = Field(default=None, ge=0, le=1)
+    buying_signal: Literal["none", "interest", "ready_to_buy", "declining"] = "none"
+    status: Literal["analyzed", "not_analyzed", "mock"] = "analyzed"
 
 
 class CallAnalysis(BaseModel):
@@ -33,6 +37,7 @@ class CallAnalysis(BaseModel):
     rating: Literal["Hot", "Warm", "Cold"]
     reasons: list[str]
     sentiment: list[Sentiment]
+    sentiment_turns: list[TurnAnalysis] = Field(default_factory=list)
     booked: bool
     summary: str
     next_action: str
@@ -56,12 +61,19 @@ def analyze_turn(text: str) -> TurnAnalysis:
 def summarize_call(turns: list[TurnAnalysis], *, booked: bool) -> CallAnalysis:
     found = {signal for turn in turns for signal in turn.signals}
     reasons = [description for key, (_, description) in SIGNALS.items() if key in found]
-    score = 25 * len(reasons)
-    sentiment = [turn.sentiment for turn in turns]
+    buying = next(
+        (turn.buying_signal for turn in reversed(turns) if turn.buying_signal != "none"), "none"
+    )
+    if buying == "ready_to_buy":
+        reasons.append("Buyer indicated readiness to buy.")
+    score = min(100, 25 * len(reasons))
+    sentiment = [turn.sentiment for turn in turns if turn.sentiment is not None]
     if booked:
         action = "Send the recorded demo details after human review."
-    elif "Negative" in sentiment:
+    elif "Negative" in sentiment and buying != "ready_to_buy":
         action = "Ask a specialist to review the concern before following up."
+    elif buying == "ready_to_buy":
+        action = "Offer to book a demo."
     else:
         missing = next((key for key in SIGNALS if key not in found), None)
         action = f"Ask the buyer about {missing}." if missing else "Offer a demo time."
@@ -78,6 +90,7 @@ def summarize_call(turns: list[TurnAnalysis], *, booked: bool) -> CallAnalysis:
         rating="Hot" if score >= 75 else "Warm" if score >= 50 else "Cold",
         reasons=reasons,
         sentiment=sentiment,
+        sentiment_turns=turns,
         booked=booked,
         summary=summary,
         next_action=action,

@@ -13,18 +13,23 @@ class Call:
     turns: deque[TurnAnalysis] = field(default_factory=lambda: deque(maxlen=100))
     booked: bool = False
     incomplete: bool = False
+    negative_streak: int = 0
+    decline_question_asked: bool = False
 
 
 class Insights:
     def __init__(self, store: ReportStore) -> None:
         self.store = store
-        self.jobs: asyncio.Queue[tuple[Call, str | None, asyncio.Future[dict[str, Any]] | None]] = (
-            asyncio.Queue(maxsize=128)
-        )
+        self.jobs: asyncio.Queue[
+            tuple[Call, str | TurnAnalysis | None, asyncio.Future[dict[str, Any]] | None]
+        ] = asyncio.Queue(maxsize=128)
         self.dropped = 0
 
     def submit(
-        self, call: Call, text: str | None, result: asyncio.Future[dict[str, Any]] | None = None
+        self,
+        call: Call,
+        text: str | TurnAnalysis | None,
+        result: asyncio.Future[dict[str, Any]] | None = None,
     ) -> None:
         try:
             self.jobs.put_nowait((call, text, result))
@@ -43,14 +48,20 @@ class Insights:
                         report = summarize_call(list(call.turns), booked=call.booked)
                         await asyncio.to_thread(self.store.save, report)
                 else:
-                    turn = analyze_turn(text)
+                    turn = (
+                        analyze_turn(text).model_copy(update={"status": "mock"})
+                        if isinstance(text, str)
+                        else text
+                    )
                     call.turns.append(turn)
                     if result and not result.done():
                         report = summarize_call(list(call.turns), booked=call.booked)
                         result.set_result(
                             {
-                                "status": "ready",
+                                "status": turn.status,
                                 "sentiment": turn.sentiment,
+                                "sentiment_score": turn.score,
+                                "confidence": turn.confidence,
                                 "score": report.score,
                                 "rating": report.rating,
                                 "reasons": report.reasons,

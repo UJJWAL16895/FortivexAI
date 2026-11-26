@@ -34,3 +34,5 @@ Evidence: [STEP-014 scratch run](reports/STEP-014.md). It ran ten focused checks
 | Add a third mode | Extend Mode in src/api/live_mode.py, ModeRequest validation and the explicit state transition. Define the provider and voice behavior before adding a Console.jsx button, then test cross-tab isolation. |
 
 For LIVE phrasing, edit PERSONA in src/llm/conversation.py. To debug a factual reply, inspect the retrieved source IDs and check_line. Use the fake-adapter regression before spending provider quota. Unreviewed claims never belong in a scripted phrase or a source card.
+
+For LIVE booking, set a breakpoint in LiveBooking.advance and compare snapshot before the offer and after the commit. Use test_live_booking_sales.py to replay the same buyer turn without spending quota. To adjust LIVE sentiment interpretation, edit PERSONA and the structured analysis model. Check the confidence and failure cases before trying a real provider. MOCK continues to use the legacy demo fixtures and visibly identifies its analysis.

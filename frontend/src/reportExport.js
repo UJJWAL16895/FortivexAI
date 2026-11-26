@@ -3,7 +3,9 @@ export function reportMarkdown(call) {
     '# ShelfPilot call report', '',
     `Lead rating: ${call.rating} (${call.score}/100)`,
     `Booking: ${call.booked ? 'Confirmed' : 'No booking'}`,
-    `Sentiment by turn: ${call.sentiment.join(', ')}`, '',
+    `Sentiment by turn: ${call.sentiment_turns?.length ? call.sentiment_turns.map(item =>
+      item.status === 'mock' ? 'Mock (rule-based): ' + item.sentiment : item.sentiment || 'Not analyzed').join(', ')
+      : call.sentiment.length ? 'Legacy (source unavailable): ' + call.sentiment.join(', ') : 'Not analyzed'}`, '',
     '## Evidence', ...call.reasons.map(item => '- ' + item), '',
     '## Summary', call.summary, '',
     '## Next action', call.next_action, '',

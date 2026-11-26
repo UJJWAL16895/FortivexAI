@@ -47,3 +47,7 @@ See STEP-022 for source labels, live analysis, grounded elaboration and layout e
 ## LIVE model-first conversation
 
 See STEP-023 for the fake-provider regression, partial real smoke and latency limits. pre-convo-fix restores the preceding cockpit release.
+
+## LIVE booking and sentiment fixes
+
+See STEP-024 for replay, provider smoke and release evidence. The pre-booking-fix tag points at the prior checkpoint.

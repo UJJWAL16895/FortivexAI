@@ -47,7 +47,7 @@ export function CallPanel({ mic, stage, micLevel, recordingMs, busy, toggleMic, 
 function ChatMessage({ entry, openSource }) {
   const { role, text, mode, citation, time, language, guarded, execution, source, passage, turnId, analysis, approvedFollowUp } = entry
   if (role === 'divider') return <p className="mode-divider">{text}</p>
-  const slot = bookingTime(mode, text)
+  const slot = entry.booking ? (mode === 'booking' ? entry.booking.receipt : null) : bookingTime(mode, text)
   const languageTag = receivedLanguage(text) || language
   return <div className={'message ' + role}>
     <div className="message-meta">
@@ -61,7 +61,10 @@ function ChatMessage({ entry, openSource }) {
     </div>
     <p>{text}</p>
     {turnId && <span className={'turn-sentiment ' + (!analysis ? 'turn-skeleton' : '')}
-      data-tone={analysis?.toLowerCase()}>{analysis === 'unavailable' ? 'Analysis unavailable' : analysis || 'Analyzing…'}</span>}
+      title={analysis?.status === 'analyzed' ? `Score ${analysis.sentiment_score}, confidence ${analysis.confidence}` : undefined}
+      data-tone={analysis?.sentiment?.toLowerCase()}>{!analysis ? 'Analyzing…'
+        : analysis.status === 'mock' ? `Mock · rule-based · ${analysis.sentiment}`
+        : analysis.status === 'analyzed' ? analysis.sentiment : 'Not analyzed'}</span>}
     {citation && <small><button className="citation-chip" type="button" onClick={() => openSource({ citation, text: passage || text })}>
       <Icon name="doc" size={15}/>{citation.title}
     </button><span className="sr-only">Source · {citation.source}#{citation.id}</span></small>}
@@ -76,6 +79,7 @@ function ChatMessage({ entry, openSource }) {
 }
 
 export function Conversation({ messages, mode, partial, pending, transcript, openSource, composer, voiceNote, voiceError }) {
+  const booking = messages.findLast(entry => entry.booking)?.booking
   return <section id="conversation-panel" className="cockpit-card conversation-panel" aria-labelledby="transcript-title">
     <div className="cockpit-card-head"><Icon name="chat"/><h2 id="transcript-title">Conversation</h2></div>
     <div className="transcript cockpit-log" role="log" aria-live="polite" aria-relevant="additions" aria-label="Transcript messages" ref={transcript}>
@@ -88,6 +92,12 @@ export function Conversation({ messages, mode, partial, pending, transcript, ope
       {partial && <div className="message agent streaming" aria-hidden="true"><span>ShelfPilot · {mode.toUpperCase()}</span><p>{partial}</p></div>}
       {pending && !partial && <div className="typing-indicator" role="status"><i/><i/><i/> ShelfPilot is replying…</div>}
     </div>
+    {booking && !['idle', 'booked'].includes(booking.state) && <section className="booking-receipt" aria-label="Pending booking">
+      <strong>Pending booking</strong>
+      <p>{booking.state === 'need_contact' ? 'Waiting for contact' : booking.state === 'need_time'
+        ? 'Waiting for preferred time' : booking.state === 'offered_slot' ? 'Choose an offered time' : 'Waiting for confirmation'}</p>
+      {booking.slots.map(slot => <p key={slot}>{slot}</p>)}
+    </section>}
     {composer}
     <p className="voice-note">{voiceNote}</p>
     {voiceError && <p role="alert" className="voice-error">{voiceError}</p>}
@@ -100,16 +110,18 @@ function IntelligenceGroup({ title, children, className = '' }) {
 
 function Sentiment({ labels, analyzing, live }) {
   const tail = labels.slice(-24)
-  const points = tail.map((label, index) => [4 + index * 112 / Math.max(1, tail.length - 1), { Positive: 5, Neutral: 17, Negative: 29 }[label]])
+  const points = tail.map((item, index) => [4 + index * 112 / Math.max(1, tail.length - 1),
+    item.sentiment_score == null ? { Positive: 5, Neutral: 17, Negative: 29 }[item.sentiment]
+      : 17 - 12 * item.sentiment_score])
   return <IntelligenceGroup title="Sentiment">
     {tail.length > 0 && <>
-      <svg className="sentiment-sparkline" viewBox="0 0 120 34" role="img" aria-label={'Recent sentiment: ' + tail.join(', ')}>
+      <svg className="sentiment-sparkline" viewBox="0 0 120 34" role="img" aria-label={'Recent sentiment: ' + tail.map(item => item.sentiment).join(', ')}>
         <path d="M4 17h112" className="sparkline-axis"/>
         <polyline points={points.map(point => point.join(',')).join(' ')} />
-        {points.map(([x, y], index) => <circle key={index} cx={x} cy={y} r="2.5" data-tone={tail[index].toLowerCase()}/>)}
+        {points.map(([x, y], index) => <circle key={index} cx={x} cy={y} r="2.5" data-tone={tail[index].sentiment.toLowerCase()}/>)}
       </svg>
-      <p className="intel-value">{tail.at(-1)}</p>
-      <p className="cockpit-muted">{live ? 'Current call' : 'Latest saved call'}</p>
+      <p className="intel-value">{tail.at(-1).sentiment}</p>
+      <p className="cockpit-muted">{tail.at(-1).status === 'mock' ? 'Mock · rule-based' : live ? 'Current call' : 'Latest saved call'}</p>
     </>}
     {(analyzing || !tail.length) && <AnalysisPending analyzing={analyzing}/>}
   </IntelligenceGroup>
@@ -183,7 +195,8 @@ export function Intelligence({ report, live, sentiment, analyzing, lead, needsCo
         {[['crm', 'View demo CRM'], ['bookings', 'Bookings'], ['summary', 'Call summary'], ['insights', 'View insights']].map(([view, label]) =>
           <button type="button" className="cockpit-button" key={view} onClick={() => openRecords(view)}>{label}</button>)}
       </div>
-      <Sentiment labels={live ? sentiment : report?.sentiment || []} analyzing={analyzing} live={live}/>
+      <Sentiment labels={live ? sentiment : (report?.sentiment_turns || []).filter(item => item.sentiment)
+        .map(item => ({ ...item, sentiment_score: item.score }))} analyzing={analyzing} live={live}/>
       <LeadScore report={report} analyzing={analyzing} live={live}/>
       <LeadProfile lead={lead} needsConfirmation={needsConfirmation} confirmed={confirmed}/>
       <Latency latency={latency} voiceInfo={voiceInfo}/>
