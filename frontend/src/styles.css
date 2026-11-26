@@ -6,6 +6,9 @@
   font-synthesis: none;
 }
 body { margin: 0; }
+.showcase,.cockpit {
+  --accent:#9aa7ff; --glow:#75e5d4; --ink:#f4f6ff; --muted:#b3bed8; --panel:#171e36; --base:#0b1020;
+}
 button, input { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: default; opacity: .56; }

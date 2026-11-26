@@ -42,3 +42,11 @@
 | Export call report | Create a Markdown file from the saved derived fields | frontend/src/reportExport.js · reportMarkdown and downloadReport |
 
 **Public preview** · src/core/settings.py validates startup, src/core/public.py checks access and capacity, and the Console.jsx banner shows mode and the optional unlock form.
+
+## Cockpit UI
+
+- Open /console → frontend/src/Console.jsx mounts the navigation, session start, timers, drawers and controls.
+- Record or Stop → toggleMic reads the analyser and updates CallPanel. voice.js → createPlayback signals when audio actually starts or ends.
+- Display a turn → CockpitPanels.jsx → Conversation and ChatMessage. A citation opens the exact approved reply excerpt. A confirmed booking reply renders the receipt.
+- End the call → Console.jsx → endCall sends the existing end frame and reads the existing Insights endpoint for a new saved report. The intelligence cards display the latest persisted report.
+- Open workspace records → Console.jsx → openRecords fetches CRM or Insights and lazy-loads CockpitRecords.jsx.

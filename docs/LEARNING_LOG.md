@@ -139,3 +139,13 @@ The access code works like a desk pass. The server creates a temporary cookie, a
 ### STEP-019 · Release audit
 
 A clean clone checks whether the repo carries everything an evaluator needs. A synthetic Chrome mic checks the real capture path with a predictable sample. Each claim needs an artifact, output, official source or a scenario label. Read CLAIMS_AUDIT.md and STEP-019. Exercise: explain why the mock load test cannot predict the GPU speech fleet. The report contains five questions with answers.
+
+### STEP-020 · Console cockpit
+
+The session code receives the same events. The cockpit turns those events into an operator view. The mic orb is like an audio mixer light. It follows the real input level. A citation chip opens the words the server actually approved. Sentiment and score come from SQLite after the call closes. Read Console.jsx, CockpitPanels.jsx and cockpitData.js. Exercise: add a chip without changing the socket payload.
+
+1. **What moves the orb while recording?** The Web Audio analyser reads the microphone stream.
+2. **When do the two analysis cards get values?** After the call ends and the saved report appears.
+3. **What does a dash on latency mean?** The stage has no measurement for this turn.
+4. **What does the citation drawer display?** The reviewed excerpt already returned with the citation.
+5. **Does Reset call erase a saved booking?** It clears the UI and opens a new session. The database keeps the booking.

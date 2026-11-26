@@ -144,3 +144,7 @@ After the reply is sent, the backend drops the buyer turn on a small work queue.
 ## Final rehearsal
 
 The clean Windows copy passed 46 tests. Its live-mode browser run booked and saved a fictional lead with synthetic microphone audio. Three separate general prompts reached Gemini A. The reviewed-phrase filter used the policy reply for each of those prompts. Be clear about which path generated a given reply. The audit report has the command output.
+
+## Live Call Cockpit
+
+Think of the console as three desks. On the left, you record or choose a scenario. The orb moves with your mic level while recording, and the label says what the app is doing. In the middle, you read the conversation. A source chip opens the reviewed answer, and the booking receipt shows the confirmed time. On the right, the profile and timing change as their events arrive. End the call to see its report in Insights. The sentiment and score cards read the latest saved report. Reset starts a fresh screen and opens a new connection.

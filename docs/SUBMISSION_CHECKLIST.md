@@ -31,3 +31,7 @@ Update this page every phase. A candidate release must run from a fresh checkout
 | demo-p1-text | Earliest keyless text fallback. |
 
 Use the keyless run from README first. Check the latest audit, physical microphone status and account-side tasks in MORNING_REPORT.md. Optional depth deferrals are in OPEN_QUESTIONS.md.
+
+## Console cockpit
+
+Use pre-console-ui to restore the earlier console, or use demo-cockpit after the cockpit release gates pass. The accepted submission checkpoint remains available as final-submission. See STEP-020 for the browser checks, Lighthouse, screenshots and backend data limits.

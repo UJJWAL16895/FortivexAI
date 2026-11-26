@@ -54,7 +54,7 @@ export async function transcribe(bytes, language) {
   return { ...result, transferMs: Math.max(0, performance.now() - started - result.api_ms) }
 }
 
-export function createPlayback(context, onStart, onError) {
+export function createPlayback(context, onStart, onError, onSpeaking = () => {}) {
   const abort = new AbortController()
   let queue = Promise.resolve()
   let source
@@ -65,7 +65,11 @@ export function createPlayback(context, onStart, onError) {
     return new Promise((resolve, reject) => {
       utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = /[\u0900-\u097f]/u.test(text) ? 'hi-IN' : 'en-IN'
-      utterance.onstart = () => onStart('Browser speech')
+      utterance.onstart = () => {
+        if (abort.signal.aborted) return
+        onSpeaking(true)
+        onStart('Browser speech')
+      }
       utterance.onend = resolve
       utterance.onerror = () => reject(Error('Browser speech is unavailable.'))
       window.speechSynthesis.speak(utterance)
@@ -105,13 +109,20 @@ export function createPlayback(context, onStart, onError) {
       source.connect(context.destination)
       source.onended = () => { source = null; resolve() }
       source.start()
+      onSpeaking(true)
       onStart(provider, firstByte)
     })
   }
 
   return {
     enqueue(text, mode) {
-      queue = queue.then(() => play(text, mode)).catch(() => {
+      queue = queue.then(async () => {
+        try {
+          await play(text, mode)
+        } finally {
+          if (!abort.signal.aborted) onSpeaking(false)
+        }
+      }).catch(() => {
         if (!abort.signal.aborted) onError('Speech playback failed. Read the reply in the transcript.')
       })
     },

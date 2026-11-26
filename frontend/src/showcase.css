@@ -1,4 +1,4 @@
-.showcase { --accent:#9aa7ff; --glow:#75e5d4; --ink:#f4f6ff; --muted:#b3bed8; --panel:#171e36; background:#0b1020; color:var(--ink); min-height:100vh; font:16px/1.6 "Segoe UI",system-ui,sans-serif; }
+.showcase { background:var(--base); color:var(--ink); min-height:100vh; font:16px/1.6 "Segoe UI",system-ui,sans-serif; }
 .showcase a { color:var(--ink); }
 .showcase :focus-visible { outline:3px solid var(--glow); outline-offset:4px; }
 .showcase [id] { scroll-margin-top:8rem; }

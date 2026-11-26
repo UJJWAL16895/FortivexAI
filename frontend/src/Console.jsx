@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { createPlayback, toWav, transcribe } from './voice.js'
-import './styles.css'
-import { downloadReport } from './reportExport.js'
+import { CallPanel, Conversation, Intelligence } from './CockpitPanels.jsx'
+import { bookingTime, formatClock, navigation, scenarios } from './cockpitData.js'
+import { Icon } from './cockpitIcons.jsx'
+import './cockpit.css'
 
-
-const prompts = ['How does the multi-store dashboard work?', 'How much does Growth cost?', 'Can I see a demo?']
+const Records = lazy(() => import('./CockpitRecords.jsx'))
 const initialMessage = {
   role: 'agent',
   text: 'Hi, I’m the ShelfPilot demo agent. What would you like to know about managing inventory across your stores?',
@@ -37,6 +38,17 @@ export default function App() {
   const [insightsError, setInsightsError] = useState('')
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
   const [connection, setConnection] = useState(0)
+  const [presenter, setPresenter] = useState(false)
+  const [tab, setTab] = useState('conversation')
+  const [guide, setGuide] = useState(null)
+  const [drawer, setDrawer] = useState(null)
+  const [toast, setToast] = useState('')
+  const [confirmed, setConfirmed] = useState([])
+  const [speaking, setSpeaking] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const [recordingMs, setRecordingMs] = useState(0)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [report, setReport] = useState(null)
   const socket = useRef(null)
   const transcript = useRef(null)
   const input = useRef(null)
@@ -45,6 +57,33 @@ export default function App() {
   const playback = useRef(null)
   const replyMode = useRef('mock')
   const voiceSentAt = useRef(null)
+  const dialog = useRef(null)
+  const callStarted = useRef(null)
+  const recordingStarted = useRef(null)
+  const confirmationKeys = useRef([])
+  const profileSnapshot = useRef('')
+  const callVersion = useRef(0)
+  const ending = useRef(false)
+  const policyUsed = useRef(false)
+
+  useEffect(() => {
+    const tick = () => {
+      if (callStarted.current !== null) setElapsed(performance.now() - callStarted.current)
+      if (recordingStarted.current !== null) setRecordingMs(performance.now() - recordingStarted.current)
+    }
+    const timer = setInterval(tick, 250)
+    return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    if (drawer && !dialog.current.open) dialog.current.showModal()
+  }, [drawer])
+
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToast(''), 3200)
+    return () => clearTimeout(timer)
+  }, [toast])
 
   useEffect(() => {
     fetch('/api/public-status').then(response => response.json()).then(setPublicMode).catch(() => {})
@@ -70,12 +109,18 @@ export default function App() {
       if (event.type === 'profile') {
         setLead(event.profile)
         setNeedsConfirmation(Boolean(event.pending))
+        const snapshot = JSON.stringify(event.profile)
+        if (profileSnapshot.current && snapshot !== profileSnapshot.current) setToast('Lead profile updated.')
+        profileSnapshot.current = snapshot
+        if (event.pending) confirmationKeys.current = Object.keys(event.pending).filter(key => event.pending[key] != null)
         return
       }
       if (event.type === 'provider') {
+        if (event.provider === 'policy' && event.status === 'active') policyUsed.current = true
         if (event.status !== 'trying') {
           setTrace(items => [...items, `${event.provider} ${event.status}${event.code ? ` (${event.code})` : ''}${event.quota ? ` · ${event.quota}` : ''}`])
         }
+        if (event.status === 'failed' || event.status === 'fallback') setToast(event.provider + ' failed. Checking the fallback.')
         if (event.status === 'active') {
           setProvider(event.model)
           replyMode.current = event.provider === 'mock' ? 'mock' : 'live'
@@ -101,16 +146,26 @@ export default function App() {
         return
       }
       if (event.type !== 'reply' && event.type !== 'error') return
+      const guarded = policyUsed.current
       setMessages(items => [...items, {
         role: event.type === 'error' ? 'notice' : 'agent',
         text: event.text,
         mode: event.mode,
         citation: event.citation,
+        time: Date.now(),
+        guarded,
       }])
       setPartial('')
       if (event.type === 'reply') setLatency(event.latency_ms)
       setPending(false)
-      if (event.mode === 'booking') setCRM(null)
+      if (event.mode === 'booking') {
+        setCRM(null)
+        if (bookingTime(event.mode, event.text)) setToast('Appointment confirmed.')
+      }
+      if (/^(Thanks, I’ve confirmed|धन्यवाद, मैंने ये बातें)/u.test(event.text)) {
+        const fields = confirmationKeys.current
+        setConfirmed(current => [...new Set([...current, ...fields])])
+      }
     }
     client.onclose = () => {
       playback.current?.stop()
@@ -118,6 +173,9 @@ export default function App() {
       setStatus('Disconnected')
       setPending(false)
       setPartial('')
+      setSpeaking(false)
+      if (callStarted.current !== null) setElapsed(performance.now() - callStarted.current)
+      callStarted.current = null
     }
     return () => {
       client.onclose = null
@@ -133,22 +191,32 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    transcript.current.scrollTop = transcript.current.scrollHeight
-  }, [messages, pending, partial])
+    if (messages.length > 1) transcript.current.scrollTop = transcript.current.scrollHeight
+  }, [messages, pending, partial, tab])
 
   function send(text, simulateFailure = false, voicePlayback = null) {
     const message = text.trim()
     if (!message || pending || socket.current?.readyState !== WebSocket.OPEN) return false
     playback.current?.stop()
+    setSpeaking(false)
     playback.current = voicePlayback
+    if (!voicePlayback) {
+      setVoiceInfo(null)
+      setVoiceError('')
+    }
     voiceSentAt.current = voicePlayback ? performance.now() : null
+    policyUsed.current = false
+    callStarted.current ??= performance.now()
     socket.current.send(JSON.stringify({ text: message, simulate_failure: simulateFailure }))
     setTrace([])
     setLatency(null)
-    setMessages(items => [...items, { role: 'buyer', text: message }])
+    setMessages(items => [...items, { role: 'buyer', text: message, time: Date.now(),
+      language: voicePlayback ? voiceLanguage.toUpperCase() + ' · mic' : null }])
     setDraft('')
     setPending(true)
-    input.current.focus()
+    setTab('conversation')
+    if (input.current.getClientRects().length) input.current.focus()
+    else requestAnimationFrame(() => input.current?.focus())
     return true
   }
 
@@ -161,6 +229,7 @@ export default function App() {
     setMic('starting')
     setVoiceError('')
     setVoiceInfo(null)
+    setSpeaking(false)
     playback.current?.stop()
     let stream
     try {
@@ -185,6 +254,7 @@ export default function App() {
       recorder.ondataavailable = event => { if (event.data.size) parts.push(event.data) }
       recorder.onstop = async () => {
         cancelAnimationFrame(levelFrame)
+        recordingStarted.current = null
         meterSource.disconnect()
         setMicLevel(0)
         const stoppedAt = performance.now()
@@ -202,7 +272,7 @@ export default function App() {
             ...info, tts: info.tts ?? source,
             ttsFirstByteMs: info.ttsFirstByteMs ?? ttsFirstByteMs,
             audioMs: info.audioMs ?? Math.round(performance.now() - stoppedAt),
-          })), setVoiceError)
+          })), setVoiceError, setSpeaking)
           if (!send(transcript.text, false, voicePlayback)) setVoiceError('Reconnect and record again.')
         } catch (error) {
           setVoiceError(error.message || 'Recording failed. Try typing your message.')
@@ -211,6 +281,9 @@ export default function App() {
         }
       }
       recorder.start()
+      callStarted.current ??= performance.now()
+      recordingStarted.current = performance.now()
+      setRecordingMs(0)
       drawLevel()
       const timer = setTimeout(() => {
         if (recorder.state === 'recording') recorder.stop()
@@ -224,145 +297,221 @@ export default function App() {
     }
   }
 
-  return (
-    <>
-      <header className="header">
-        <div className="brand"><span className="brand-mark" aria-hidden="true">▥</span><span>ShelfPilot<small>SALES CONSOLE</small></span></div>
-        <span className="mode"><span aria-hidden="true" /> {mode ? mode.toUpperCase() : 'CONNECTING'}</span>
-      </header>
-      {publicMode?.public && <aside className="public-mode">
-        <strong>Public preview · {publicMode.mode.toUpperCase()}</strong> Use fictional data.
-        {publicMode.locked && status !== 'Connected' && <form onSubmit={async event => {
-          event.preventDefault()
-          setAccessError('')
-          try {
-            const response = await fetch('/api/unlock', {method:'POST', body:accessCode})
-            if (!response.ok) throw Error(response.status === 429 ? 'Demo request limit reached.' : 'Access code rejected.')
-            setAccessCode('')
-            setConnection(value => value + 1)
-          } catch (error) { setAccessError(error.message || 'Unable to unlock.') }
-        }}>
-          <label htmlFor="public-code">Evaluator access code</label>
-          <input id="public-code" type="password" value={accessCode} maxLength={256} onChange={e => setAccessCode(e.target.value)} required/>
-          <button className="send">Unlock</button>
-          {accessError && <p role="alert">{accessError}</p>}
-        </form>}
-      </aside>}
-      <main>
-        <section className="intro">
-          <p className="eyebrow">WORKSPACE / SALES DEMO</p>
-          <h1>Sales conversation</h1>
-          <p>Try an inbound inventory inquiry as a retail buyer.</p>
-        </section>
-        <div className="workspace">
-          <section className="panel chat" aria-labelledby="transcript-title">
-            <div className="panel-header"><h2 id="transcript-title">Transcript</h2><span className={status === 'Connected' ? 'connected' : ''} role="status">{status}</span></div>
-            <div className="transcript" role="log" aria-label="Transcript messages" ref={transcript}>
-              {messages.map(({ role, text, mode: replyMode, citation }, index) => (
-                <div className={`message ${role}`} key={index}>
-                  <span>{role === 'buyer' ? 'You' : role === 'notice' ? 'Session' : 'ShelfPilot'}{replyMode && ` · ${replyMode.toUpperCase()}`}</span>
-                  <p>{text}</p>
-                  {citation && <small>Source · {citation.title} · {citation.source}#{citation.id}</small>}
-                </div>
-              ))}
-              {partial && <div className="message agent"><span>ShelfPilot · {mode.toUpperCase()}</span><p>{partial}</p></div>}
-              {pending && !partial && <p role="status" className="pending">ShelfPilot is replying…</p>}
-            </div>
-            <form onSubmit={event => { event.preventDefault(); if (mic === 'idle') send(draft) }}>
-              <label className="sr-only" htmlFor="message">Message</label>
-              <input id="message" ref={input} placeholder="Ask about inventory…" maxLength={500} value={draft} onChange={event => setDraft(event.target.value)} />
-              <button className="send" disabled={!draft.trim() || pending || mic !== 'idle' || status !== 'Connected'} type="submit">Send <span aria-hidden="true">↑</span></button>
-              <button className="mic" disabled={pending || status !== 'Connected' || !['idle', 'recording'].includes(mic)} type="button" onClick={toggleMic}>{({idle: 'Record', starting: 'Opening…', recording: 'Stop', transcribing: 'Transcribing…'})[mic]}</button>
-            </form>
-            {mic === 'recording' && <div className="mic-waveform" aria-hidden="true">
-              {[.4,.65,.85,1,.85,.65,.4].map((factor, index) =>
-                <i key={index} style={{transform: 'scaleY(' + (.12 + factor * micLevel * .88) + ')'}} />)}
-            </div>}
-            <p className="voice-note">{configuredMode === 'live' ? 'Microphone audio may be sent to Gemini for transcription.' : 'Mock voice uses a scripted transcript.'}</p>
-            {voiceError && <p role="alert" className="voice-error">{voiceError}</p>}
-          </section>
-          <aside className="panel sidebar">
-            <section aria-labelledby="session-title">
-              <h2 id="session-title">Session</h2>
-              <dl>
-                <div><dt>Provider</dt><dd>{provider || '—'}</dd></div>
-                <div><dt>First text</dt><dd>{latency === null ? '—' : `${latency.toFixed(2)} ms`}</dd></div>
-                {voiceInfo && <div><dt>Transcription</dt><dd>{voiceInfo.stt} · {voiceInfo.sttMs.toFixed(0)} ms</dd></div>}
-                {voiceInfo && <div><dt>Endpoint tail · encode</dt><dd>{voiceInfo.endpointMs.toFixed(0)} · {voiceInfo.encodeMs.toFixed(0)} ms</dd></div>}
-                {voiceInfo && <div><dt>Transfer overhead</dt><dd>{voiceInfo.transferMs.toFixed(0)} ms</dd></div>}
-                {voiceInfo?.sentenceMs != null && <div><dt>First approved sentence</dt><dd>{voiceInfo.sentenceMs.toFixed(0)} ms</dd></div>}
-                {voiceInfo?.ttsFirstByteMs != null && <div><dt>TTS first byte</dt><dd>{voiceInfo.ttsFirstByteMs.toFixed(0)} ms</dd></div>}
-                {voiceInfo?.tts && <div><dt>Stop to playback</dt><dd>{voiceInfo.audioMs} ms · {voiceInfo.tts}</dd></div>}
-                {voiceInfo?.tts && <div><dt>Estimated end to playback</dt><dd>{Math.round(voiceInfo.endpointMs + voiceInfo.audioMs)} ms</dd></div>}
-              </dl>
-              <label htmlFor="voice-language">Microphone language </label>
-              <select id="voice-language" value={voiceLanguage} onChange={e => setVoiceLanguage(e.target.value)} disabled={mic !== 'idle'}>
-                <option value="en">English</option><option value="hi">Hindi</option>
-              </select>
-              {trace.length > 0 && <ul className="trace" aria-label="Provider trace">{trace.map(item => <li key={item}>{item}</li>)}</ul>}
-              {allowFallback && <button className="suggestion" disabled={pending || mic !== 'idle' || status !== 'Connected'} onClick={() => send(prompts[0], true)}>Simulate Gemini failures</button>}
-              {status === 'Disconnected' && <button className="suggestion" onClick={() => { setStatus('Connecting'); setConnection(value => value + 1) }}>Reconnect</button>}
-            </section>
-            {lead && (needsConfirmation || lead.name || lead.company || lead.need || lead.store_count || lead.target_date) &&
-              <section className="prompts" aria-label="Lead profile">
-                <h2>Lead profile</h2>
-                <dl>
-                  {lead.name && <div><dt>Name</dt><dd>{lead.name}</dd></div>}
-                  {lead.company && <div><dt>Company</dt><dd>{lead.company}</dd></div>}
-                  {lead.need && <div><dt>Need</dt><dd>{lead.need}</dd></div>}
-                  {lead.store_count && <div><dt>Stores</dt><dd>{lead.store_count}</dd></div>}
-                  {lead.target_date && <div><dt>Target date</dt><dd>{lead.target_date}</dd></div>}
-                </dl>
-                {needsConfirmation && <p className="pending">Waiting for your confirmation</p>}
-              </section>}
-            <section aria-labelledby="prompts-title" className="prompts">
-              <h2 id="prompts-title">Try asking</h2>
-              {prompts.map(prompt => <button className="suggestion" key={prompt} disabled={pending || mic !== 'idle' || status !== 'Connected'} onClick={() => send(prompt)}>{prompt}<span aria-hidden="true">↗</span></button>)}
-              <button className="suggestion" disabled={pending || mic !== 'idle' || status !== 'Connected'} onClick={() => send('Book a demo')}>Book a demo</button>
-              <button className="suggestion" onClick={async () => {
-                setCRMError('')
-                try {
-                  const response = await fetch('/api/crm')
-                  if (!response.ok) throw Error('CRM unavailable.')
-                  setCRM(await response.json())
-                } catch { setCRMError('CRM unavailable.') }
-              }}>View demo CRM</button>
-              <button className="suggestion" disabled={pending || mic !== 'idle' || status !== 'Connected'}
-                onClick={() => socket.current.send(JSON.stringify({ text: 'End conversation', end_call: true }))}>End conversation</button>
-              <button className="suggestion" onClick={async () => {
-                setInsightsError('')
-                try {
-                  const response = await fetch('/api/insights')
-                  if (!response.ok) throw Error('Insights unavailable.')
-                  setInsights(await response.json())
-                } catch { setInsightsError('Insights unavailable.') }
-              }}>View insights</button>
-              {crmError && <p role="alert">{crmError}</p>}
-              {insightsError && <p role="alert">{insightsError}</p>}
-              {crm && <section aria-label="Demo CRM">
-                <h3>Demo CRM</h3>
-                <p>{crm.leads.length} leads · {crm.bookings.length} bookings</p>
-                <ul>{crm.leads.map(item => <li key={item.contact}>{item.name || item.contact}{item.company ? ' · ' + item.company : ''}</li>)}</ul>
-                <ul>{crm.bookings.map(item => <li key={item.slot}>{item.contact} · {item.label}</li>)}</ul>
-              </section>}
-              {insights && <section aria-label="Call insights">
-                <h3>Call insights</h3>
-                <p>{insights.totals.booked_calls} of {insights.totals.calls} analyzed calls booked · {(insights.totals.booking_rate * 100).toFixed(0)}%</p>
-                {insights.dropped_jobs > 0 && <p>{insights.dropped_jobs} analysis jobs skipped at capacity</p>}
-                {insights.calls.map((call, index) => <article key={index}>
-                  <h4>{call.rating} · {call.score}/100</h4>
-                  <p>{call.summary}</p>
-                  {call.reasons.length > 0 && <ul>{call.reasons.map(reason => <li key={reason}>{reason}</li>)}</ul>}
-                  <small>Sentiment by turn · {call.sentiment.join(' → ')}</small>
-                  <p>Next action · {call.next_action}</p>
-                  <p>Follow-up draft · {call.follow_up_draft}</p>
-                  <button className="suggestion" onClick={() => downloadReport(call)}>Export call report</button>
-                </article>)}
-              </section>}
-            </section>
-          </aside>
+
+  function reconnect() {
+    setStatus('Connecting')
+    setConnection(value => value + 1)
+  }
+
+  function resetCall() {
+    callVersion.current += 1
+    ending.current = false
+    callStarted.current = null
+    voiceSentAt.current = null
+    policyUsed.current = false
+    confirmationKeys.current = []
+    profileSnapshot.current = ''
+    playback.current?.stop()
+    playback.current = null
+    setMessages([initialMessage])
+    setElapsed(0)
+    setDraft('')
+    setPartial('')
+    setPending(false)
+    setVoiceInfo(null)
+    setVoiceError('')
+    setSpeaking(false)
+    setLatency(null)
+    setTrace([])
+    setLead(null)
+    setNeedsConfirmation(false)
+    setConfirmed([])
+    setCRM(null)
+    setInsights(null)
+    setCRMError('')
+    setInsightsError('')
+    setAnalyzing(false)
+    setReport(null)
+    setToast('')
+    setGuide(null)
+    setTab('conversation')
+    reconnect()
+  }
+
+  async function endCall() {
+    if (ending.current) return
+    const client = socket.current
+    const version = callVersion.current
+    ending.current = true
+    setAnalyzing(true)
+    let before
+    try {
+      const snapshot = await fetchWorkspace('insights', AbortSignal.timeout(1600))
+      before = snapshot.totals.calls
+    } catch {
+      // The existing end command still works if the analytics read is unavailable.
+    }
+    if (version !== callVersion.current) return
+    if (client?.readyState === WebSocket.OPEN) client.send(JSON.stringify({ text: 'End conversation', end_call: true }))
+    try {
+      if (before == null) return
+      for (const pause of [180, 300, 450, 700, 1000]) {
+        await new Promise(resolve => setTimeout(resolve, pause))
+        if (version !== callVersion.current) return
+        const result = await fetchWorkspace('insights', AbortSignal.timeout(1500))
+        if (result.totals.calls > before) {
+          if (version !== callVersion.current) return
+          setInsights(result)
+          setReport(result.calls[0] ?? null)
+          setToast('A saved call report is available.')
+          return
+        }
+      }
+    } catch {
+      // The operator can reopen Insights if the bounded refresh did not complete.
+    } finally {
+      if (version === callVersion.current) {
+        ending.current = false
+        setAnalyzing(false)
+      }
+    }
+  }
+
+  async function fetchWorkspace(endpoint, signal) {
+    const response = await fetch('/api/' + endpoint, { signal })
+    if (!response.ok) throw Error((endpoint === 'crm' ? 'CRM' : 'Insights') + ' unavailable.')
+    return response.json()
+  }
+
+  async function openRecords(view) {
+    setDrawer({ view })
+    const wantsCRM = ['crm', 'bookings'].includes(view)
+    const setError = wantsCRM ? setCRMError : setInsightsError
+    setError('')
+    const version = callVersion.current
+    try {
+      const data = await fetchWorkspace(wantsCRM ? 'crm' : 'insights')
+      if (version === callVersion.current) (wantsCRM ? setCRM : setInsights)(data)
+    } catch (error) {
+      if (version === callVersion.current) setError(error.message)
+    }
+  }
+
+  async function unlock(event) {
+    event.preventDefault()
+    setAccessError('')
+    try {
+      const response = await fetch('/api/unlock', { method: 'POST', body: accessCode })
+      if (!response.ok) throw Error(response.status === 429 ? 'Demo request limit reached.' : 'Access code rejected.')
+      setAccessCode('')
+      reconnect()
+    } catch (error) {
+      setAccessError(error.message || 'Unable to unlock.')
+    }
+  }
+
+  const stage = mic === 'recording' ? 'Listening'
+    : mic === 'transcribing' ? 'Transcribing'
+    : mic === 'starting' ? 'Opening microphone'
+    : speaking ? 'Speaking'
+    : voiceError ? 'Error'
+    : pending ? 'Thinking' : 'Idle'
+  const busy = pending || mic !== 'idle' || status !== 'Connected' || analyzing
+  const composer = <form className="cockpit-composer" onSubmit={event => {
+    event.preventDefault()
+    if (!busy) send(draft)
+  }}>
+    <label className="sr-only" htmlFor="message">Message</label>
+    <input id="message" ref={input} placeholder="Ask about inventory…" maxLength={500} value={draft} onChange={event => setDraft(event.target.value)}/>
+    <button className="send" disabled={!draft.trim() || busy} type="submit">Send <Icon name="send" size={16}/></button>
+  </form>
+
+  function moveTab(event, index) {
+    const order = ['conversation', 'call', 'intelligence']
+    const offset = { ArrowLeft: -1, ArrowRight: 1 }[event.key]
+    const next = offset ? (index + offset + order.length) % order.length
+      : event.key === 'Home' ? 0 : event.key === 'End' ? order.length - 1 : null
+    if (next === null) return
+    event.preventDefault()
+    setTab(order[next])
+    document.getElementById('cockpit-tab-' + order[next]).focus()
+  }
+
+  return <div className="cockpit" data-tab={tab} data-presenter={presenter}>
+    <a className="cockpit-skip" href="#cockpit-main">Skip to console</a>
+    <header className="cockpit-header">
+      <a className="cockpit-brand" href="/"><span aria-hidden="true"><Icon name="pulse" size={23}/></span>ShelfPilot</a>
+      <nav aria-label="ShelfPilot">{navigation.map(([id, label]) =>
+        <a href={'/#' + id} key={id} aria-current={id === 'live' ? 'location' : undefined}>{label}</a>)}</nav>
+      <div className="cockpit-status">
+        <span className="connection-status" role="status"><i className={status === 'Connected' ? 'connected' : ''}/>{status}</span>
+        <span className="mode" data-mode={mode}>{mode ? mode.toUpperCase() : 'CONNECTING'}</span>
+        <label className="language-picker"><span className="sr-only">Microphone language</span>
+          <select id="voice-language" value={voiceLanguage} onChange={e => setVoiceLanguage(e.target.value)} disabled={mic !== 'idle'}>
+            <option value="en">EN · English</option><option value="hi">हिं · Hindi</option>
+          </select>
+        </label>
+        <span className="call-clock" aria-label={'Call duration ' + formatClock(elapsed)}>{formatClock(elapsed)}</span>
+      </div>
+    </header>
+    {configuredMode === 'mock' && <div className="mock-ribbon">Mock mode: deterministic replies</div>}
+    {configuredMode === 'live' && mode === 'mock' && <div className="mock-ribbon">Mock fallback: deterministic reply</div>}
+    {publicMode?.public && <aside className="public-mode">
+      <strong>Public preview · {publicMode.mode.toUpperCase()}</strong> Use fictional data.
+      {publicMode.locked && status !== 'Connected' && <form onSubmit={unlock}>
+        <label htmlFor="public-code">Evaluator access code</label>
+        <input id="public-code" type="password" value={accessCode} maxLength={256} onChange={e => setAccessCode(e.target.value)} required/>
+        <button className="cockpit-button">Unlock</button>
+        {accessError && <p role="alert">{accessError}</p>}
+      </form>}
+    </aside>}
+    <main id="cockpit-main" className="cockpit-main">
+      <div className="cockpit-title">
+        <div><p className="cockpit-kicker">SHELFPILOT SALES CONSOLE</p><h1>Live Call Cockpit</h1></div>
+        <div className="cockpit-tools">
+          <button type="button" className="cockpit-button" aria-pressed={presenter} onClick={() => setPresenter(value => !value)}>
+            <Icon name="screen"/> Presenter mode
+          </button>
+          <button type="button" className="cockpit-button" disabled={mic !== 'idle'} onClick={resetCall}>
+            <Icon name="refresh"/> Reset call
+          </button>
         </div>
-      </main>
-    </>
-  )
+      </div>
+      <div className="cockpit-tabs" role="tablist" aria-label="Cockpit panels">
+        {[['conversation', 'Conversation'], ['call', 'Call'], ['intelligence', 'Intelligence']].map(([id, label], index) =>
+          <button type="button" role="tab" id={'cockpit-tab-' + id} aria-controls={id + '-panel'} key={id}
+            aria-selected={tab === id} tabIndex={tab === id ? 0 : -1} onClick={() => setTab(id)}
+            onKeyDown={event => moveTab(event, index)}>{label}</button>)}
+      </div>
+      <div className="cockpit-grid">
+        <CallPanel mic={mic} stage={stage} micLevel={micLevel} recordingMs={recordingMs} busy={busy}
+          toggleMic={toggleMic} endCall={endCall} guide={guide} setGuide={setGuide} choose={send}/>
+        <Conversation messages={messages} mode={mode} partial={partial} pending={pending}
+          transcript={transcript} openSource={setDrawer} composer={composer}
+          voiceNote={configuredMode === 'live' ? 'Microphone audio may be sent to Gemini for transcription.' : 'Mock voice uses a scripted transcript.'}
+          voiceError={voiceError}/>
+        <Intelligence report={report} analyzing={analyzing} lead={lead}
+          needsConfirmation={needsConfirmation} confirmed={confirmed} latency={latency} voiceInfo={voiceInfo}
+          provider={provider} trace={trace} allowFallback={allowFallback} busy={busy}
+          simulate={() => send(scenarios.Ask[1], true)} openRecords={openRecords} reconnect={reconnect} status={status}/>
+      </div>
+    </main>
+    <div className="toast-region" aria-live="polite">{toast && <div className="cockpit-toast" key={toast}>{toast}</div>}</div>
+    <dialog className="cockpit-drawer" ref={dialog} onClose={() => setDrawer(null)} aria-labelledby="drawer-title">
+      {drawer && <>
+        <header className="drawer-header">
+          <h2 id="drawer-title">{drawer.citation ? 'Reviewed source' : 'Workspace records'}</h2>
+          <button type="button" className="cockpit-button" onClick={() => dialog.current.close()} aria-label="Close panel"><Icon name="close"/></button>
+        </header>
+        {drawer.citation ? <section className="drawer-source">
+          <h3>{drawer.citation.title}</h3><p>{drawer.citation.source}#{drawer.citation.id}</p>
+          <blockquote>{drawer.text}</blockquote>
+        </section> : (['crm', 'bookings'].includes(drawer.view) ? crmError : insightsError)
+          ? <p className="drawer-source" role="alert">{['crm', 'bookings'].includes(drawer.view) ? crmError : insightsError}</p>
+          : <Suspense fallback={<p className="drawer-source">Loading panel…</p>}>
+              <Records view={drawer.view} crm={crm} insights={insights}/>
+            </Suspense>}
+      </>}
+    </dialog>
+  </div>
 }
