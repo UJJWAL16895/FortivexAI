@@ -152,3 +152,9 @@ Think of the console as three desks. On the left, you record or choose a scenari
 ## One-click live mode
 
 Think of the switch as a setting on your own call. When you click LIVE, the server checks its key, sends Gemini one tiny request and prepares speech recognition. The same call keeps its history and lead profile. It shows a divider once the change is confirmed. If the quota runs out, the connection moves to mock. Other tabs keep their own modes. The counter shows how many requests this server has reserved over the last 24 hours.
+
+## Why each reply has a source label
+
+A greeting, readback or handoff offer uses words prepared in advance and shows Scripted/approved phrase. A product or price question usually reads the reviewed Knowledge card. For a supported “how does it work” question in LIVE mode, Gemini can pick a two-sentence version. The first sentence is the approved fact and the second is a friendly question. The server checks both before speaking. If Gemini returns something different or is unavailable, ShelfPilot reads the card. General LIVE replies still go through the guardrail, and deterministic model fallback shows Mock.
+
+The browser adds an Analyzing marker to each buyer message. When the background worker finishes, the marker becomes a sentiment label. The right column uses those actual results for its trend and cumulative BANT score. The confirmed profile still comes from the current session, and Insights holds the saved reports.

@@ -24,7 +24,7 @@
 .cockpit-header nav { display:flex; flex-wrap:wrap; gap:.3rem 1.04rem; }
 .cockpit-header nav a { color:var(--muted); text-decoration:none; font-size:.86rem; padding:.3rem 0; }
 .cockpit-header nav a:hover,.cockpit-header nav a[aria-current] { color:var(--glow); text-decoration:underline; text-underline-offset:.25rem; }
-.cockpit-status { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; margin-left:auto; font-size:.8rem; }
+.cockpit-status { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; min-width:0; max-width:100%; margin-left:auto; font-size:.8rem; }
 .connection-status { display:flex; align-items:center; gap:.4rem; color:var(--muted); }
 .connection-status i { width:.5rem; height:.5rem; border-radius:50%; background:var(--amber); }
 .connection-status .connected { background:var(--glow); box-shadow:0 0 .7rem #75e5d475; }
@@ -103,7 +103,18 @@
 .hero-guide p,.guide-step { margin-top:.6rem; }
 .guide-step { display:grid; gap:.35rem; }
 .guide-next { border-color:var(--glow); color:var(--glow); }
-.cockpit-log { height:clamp(22rem,59vh,39rem); min-height:0; padding:1.2rem; gap:1rem; }
+.cockpit-log { height:clamp(22rem,59vh,39rem); min-height:0; padding:1.2rem; gap:1rem; scrollbar-color:#6478a5 #11192f; scrollbar-width:thin; scrollbar-gutter:stable; }
+.cockpit .message .turn-sentiment { display:inline-flex; margin:.35rem 0 0; padding:.16rem .55rem; border:1px solid var(--line); border-radius:1rem; color:var(--muted); background:var(--quiet); }
+.cockpit .message .turn-sentiment[data-tone=positive] { color:var(--glow); }
+.cockpit .message .turn-sentiment[data-tone=negative] { color:var(--danger); }
+.turn-skeleton { animation:cockpit-in .65s infinite alternate; }
+.cockpit .message-meta .reply-source { color:var(--glow); border:1px solid #3d536f; border-radius:.42rem; padding:.1rem .37rem; }
+.sentiment-sparkline { display:block; width:100%; max-width:13rem; height:2.65rem; }
+.sentiment-sparkline polyline { fill:none; stroke:var(--accent); stroke-width:1.5; }
+.sentiment-sparkline circle { fill:var(--accent); }
+.sentiment-sparkline circle[data-tone=positive] { fill:var(--glow); }
+.sentiment-sparkline circle[data-tone=negative] { fill:var(--danger); }
+.sparkline-axis { stroke:#48577a; stroke-dasharray:3 3; }
 .cockpit-empty { display:grid; justify-items:center; margin:auto 0; gap:.45rem; text-align:center; padding:.6rem; }
 .cockpit-empty p { color:var(--muted); font-size:.9rem; }
 .empty-illustration { position:relative; width:6rem; aspect-ratio:1; border:1px solid #435781; border-radius:32%; margin-bottom:.35rem; display:grid; place-items:center; color:var(--glow); background:radial-gradient(at 38% 35%,#354773,#18223d 72%); transform:rotate(-8deg); }
@@ -147,7 +158,7 @@
 .intel-card dl { margin:.25rem 0 0; }
 .intel-card dl div { padding:.26rem 0; }
 .intel-card dt,.cockpit .trace { color:var(--muted); }
-.intel-card dd { max-width:64%; }
+.intel-card dd { min-width:0; max-width:64%; }
 .analysis-pending { display:grid; gap:.4rem; color:var(--muted); font-size:.84rem; }
 .analysis-skeleton,.analysis-track,.score-track,.bant-bar,.latency-track { overflow:hidden; display:block; height:.28rem; border-radius:1rem; background:#354469; }
 .analysis-skeleton { background:linear-gradient(90deg,#354469,var(--accent),#354469); animation:cockpit-orbit .7s infinite alternate; }

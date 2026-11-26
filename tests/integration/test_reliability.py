@@ -28,7 +28,7 @@ def test_disconnect_cancels_mid_turn(monkeypatch, tmp_path):
         app.state.replies = SlowReply()
         with client.websocket_connect("/ws/text") as socket:
             socket.receive_json()
-            socket.send_json({"text": "Hello"})
+            socket.send_json({"text": "I want inventory help."})
             assert socket.receive_json()["type"] == "delta"
             socket.close()
             assert stopped.wait(1)

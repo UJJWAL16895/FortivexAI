@@ -35,3 +35,7 @@ Icons are small inline SVG paths in cockpitIcons.jsx. They add no dependency, ne
 ## One-click LIVE and MOCK
 
 Console.jsx renders the segmented buttons and the status ribbon. It sends one mode request on the open socket. It disables the mic during the check and adds a divider only after the server confirms a mode change. The ribbon shows the probe round-trip, latest Gemini first text and the server's rolling counter. CSS in cockpit.css defines mode colors and honors reduced motion. Screenshots and real smoke results are in STEP-021.
+
+## Cockpit polish
+
+Each buyer bubble shows a pending marker until its analysis event arrives. The Sentiment card plots the latest analyzed labels. Lead score and reasons update during the call. The source badge reports the origin of the visible words. The citation drawer shows the underlying reviewed passage for grounded Gemini replies. Transcript scrolling uses a dark track and a reserved scrollbar gutter.

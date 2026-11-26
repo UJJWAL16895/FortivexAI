@@ -10,7 +10,7 @@ def test_replies_and_speech_use_the_same_reviewed_passage(monkeypatch):
         for query, source, expected in (
             ("Growth ka price kya hai?", "growth", "₹2,499"),
             ("सालाना भुगतान पर छूट कितनी है?", "annual", "10%"),
-            ("Is there a 40% annual discount?", None, "specialist follow up"),
+            ("Is there a 40% annual discount?", None, "Discounts are handled"),
             ("How much is Enterprise?", None, "specialist follow up"),
         ):
             socket.send_json({"text": query})

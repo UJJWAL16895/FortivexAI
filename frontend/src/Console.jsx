@@ -56,6 +56,8 @@ export default function App() {
   const [recordingMs, setRecordingMs] = useState(0)
   const [analyzing, setAnalyzing] = useState(false)
   const [report, setReport] = useState(null)
+  const [liveAnalysis, setLiveAnalysis] = useState(null)
+  const nextTurn = useRef(0)
   const socket = useRef(null)
   const transcript = useRef(null)
   const input = useRef(null)
@@ -119,6 +121,7 @@ export default function App() {
         setProvider(event.mode === 'mock' ? 'Deterministic mock' : 'Gemini')
         setAllowFallback(event.allow_fallback_demo)
         setLead(null)
+        setLiveAnalysis(null)
         setNeedsConfirmation(false)
         try {
           const choice = localStorage.getItem(MODE_PREFERENCE)
@@ -174,6 +177,12 @@ export default function App() {
         if (event.pending) confirmationKeys.current = Object.keys(event.pending).filter(key => event.pending[key] != null)
         return
       }
+      if (event.type === 'analysis') {
+        setMessages(items => items.map(item => item.turnId === event.turn_id
+          ? { ...item, analysis: event.status === 'ready' ? event.sentiment : 'unavailable' } : item))
+        if (event.status === 'ready') setLiveAnalysis({ score: event.score, rating: event.rating, reasons: event.reasons })
+        return
+      }
       if (event.type === 'provider') {
         if (event.provider === 'policy' && event.status === 'active') policyUsed.current = true
         if (event.status !== 'trying') {
@@ -210,12 +219,20 @@ export default function App() {
         return
       }
       if (event.type !== 'reply' && event.type !== 'error') return
+      if (event.type === 'error') {
+        setMessages(items => items.map(item => item.turnId === nextTurn.current && !item.analysis
+          ? { ...item, analysis: 'unavailable' } : item))
+      }
       const guarded = policyUsed.current
       setMessages(items => [...items, {
         role: event.type === 'error' ? 'notice' : 'agent',
         text: event.text,
         mode: event.mode,
         citation: event.citation,
+        source: event.origin === 'gemini' || event.mode === 'live' ? 'Gemini ' + event.provider
+          : event.citation ? 'Knowledge card' : event.mode === 'mock' ? 'Mock' : 'Scripted/approved phrase',
+        passage: event.passage,
+        approvedFollowUp: event.approved_follow_up,
         time: Date.now(),
         guarded,
         execution: event.mode === 'mock' || event.mode === 'live' ? event.mode : activeMode.current,
@@ -275,10 +292,11 @@ export default function App() {
     policyUsed.current = false
     replyMode.current = activeMode.current || 'mock'
     callStarted.current ??= performance.now()
-    socket.current.send(JSON.stringify({ text: message, simulate_failure: simulateFailure }))
+    const turnId = simulateFailure ? undefined : ++nextTurn.current
+    socket.current.send(JSON.stringify({ text: message, simulate_failure: simulateFailure, turn_id: turnId }))
     setTrace([])
     setLatency(null)
-    setMessages(items => [...items, { role: 'buyer', text: message, time: Date.now(),
+    setMessages(items => [...items, { role: 'buyer', text: message, time: Date.now(), turnId,
       language: voicePlayback ? voiceLanguage.toUpperCase() + ' · mic' : null }])
     setDraft('')
     setPending(true)
@@ -410,6 +428,7 @@ export default function App() {
     setInsightsError('')
     setAnalyzing(false)
     setReport(null)
+    setLiveAnalysis(null)
     setToast('')
     setGuide(null)
     setTab('conversation')
@@ -582,7 +601,9 @@ export default function App() {
           transcript={transcript} openSource={setDrawer} composer={composer}
           voiceNote={configuredMode === 'live' ? 'Microphone audio may be sent to Gemini for transcription.' : 'Mock voice uses a scripted transcript.'}
           voiceError={voiceError}/>
-        <Intelligence report={report} analyzing={analyzing} lead={lead}
+        <Intelligence report={liveAnalysis || report} live={Boolean(liveAnalysis)}
+          sentiment={messages.filter(item => item.turnId && item.analysis && item.analysis !== 'unavailable').map(item => item.analysis)}
+          analyzing={messages.some(item => item.turnId && !item.analysis) && status === 'Connected'} lead={lead}
           needsConfirmation={needsConfirmation} confirmed={confirmed} latency={latency} voiceInfo={voiceInfo}
           provider={provider} trace={trace} allowFallback={allowFallback} busy={busy}
           simulate={() => send(scenarios.Ask[1], true)} openRecords={openRecords} reconnect={reconnect} status={status}/>

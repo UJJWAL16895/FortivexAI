@@ -39,3 +39,7 @@ Use pre-console-ui to restore the earlier console, or use demo-cockpit after the
 ## Live-mode checkpoint
 
 See STEP-021 for the switch checks, screenshots and real smoke evidence. pre-live-toggle and demo-cockpit preserve the earlier cockpit. demo-live-toggle is the release tag for the verified switch.
+
+## Cockpit polish checkpoint
+
+See STEP-022 for source labels, live analysis, grounded elaboration and layout evidence. pre-polish points to the previous live-toggle checkpoint. demo-polish is the tagged release once the verification gates pass.

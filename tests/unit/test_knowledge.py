@@ -11,7 +11,12 @@ def test_cited_prices_and_abstention():
     answer = knowledge.lookup("वार्षिक भुगतान पर छूट कितनी है?")
     assert answer and answer.chunk.id == "annual" and "10%" in answer.text
     answer = knowledge.lookup("Do I get a 40% annual discount?")
-    assert answer and answer.chunk is None and "specialist follow up" in answer.text
+    assert (
+        answer
+        and answer.chunk is None
+        and "Discounts are handled" in answer.text
+        and "40%" not in answer.text
+    )
     answer = knowledge.lookup("How much is the Enterprise plan?")
     assert answer and answer.chunk is None
 

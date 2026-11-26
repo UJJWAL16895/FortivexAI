@@ -73,8 +73,8 @@ def test_switch_keeps_memory_and_is_private_to_socket(fake_provider):
         turn(a, "My name is Asha.")
         assert switch(a, "live")["mode"] == "live"
         assert any("Asha" in e.get("text", "") for e in turn(a, "What do you remember?"))
-        assert any(e.get("mode") == "live" for e in turn(a, "Hello"))
-        assert any(e.get("mode") == "mock" for e in turn(b, "Hello"))
+        assert any(e.get("mode") == "live" for e in turn(a, "I want inventory help."))
+        assert any(e.get("mode") == "mock" for e in turn(b, "I want inventory help."))
         assert switch(a, "mock")["mode"] == "mock"
 
 
@@ -128,7 +128,7 @@ def test_daily_cap_reverts_live_connection(monkeypatch, fake_provider):
     with TestClient(create_app()) as client, client.websocket_connect("/ws/text") as socket:
         receive(socket)
         assert switch(socket, "live")["mode"] == "live"
-        events = turn(socket, "Hello")
+        events = turn(socket, "I want inventory help.")
         assert any(e.get("phase") == "quota" and e.get("mode") == "mock" for e in events)
         assert any(e.get("mode") == "mock" for e in events)
         assert switch(socket, "live")["mode"] == "mock"

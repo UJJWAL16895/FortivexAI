@@ -25,3 +25,40 @@ APPROVED = {
 
 def follow_up(text: str) -> tuple[str, str]:
     return CHECK_HI if HINDI.search(text) else CHECK_EN
+
+
+SMALL_TALK = {
+    "hello": "Nice to meet you! Are you managing one store or several?",
+    "well": "Doing well, thanks! Are you managing one store or several?",
+    "thanks": "You’re welcome! What would you like to improve about your inventory?",
+    "ok": "Sounds good! What would you like to know about tracking stock?",
+}
+SMALL_TALK_HI = {
+    "hello": "नमस्ते! आप एक दुकान संभालते हैं या कई?",
+    "well": "मैं ठीक हूँ, धन्यवाद! आप एक दुकान संभालते हैं या कई?",
+    "thanks": "आपका स्वागत है! स्टॉक संभालने में आपको किस चीज़ की मदद चाहिए?",
+    "ok": "ठीक है! स्टॉक के बारे में आप क्या जानना चाहेंगे?",
+}
+PLEASANTRIES = {
+    "hello": {"hello", "hi", "hey", "hello there", "namaste", "namaskar", "नमस्ते", "नमस्कार", "हैलो"},
+    "well": {"how are you", "kaise ho", "kaise hain", "aap kaise hain", "कैसे हो", "आप कैसे हैं", "कैसे हैं"},
+    "thanks": {
+        "thanks",
+        "thank you",
+        "thanks a lot",
+        "shukriya",
+        "dhanyavaad",
+        "dhanyavad",
+        "शुक्रिया",
+        "धन्यवाद",
+    },
+    "ok": {"ok", "okay", "ok thanks", "theek hai", "thik hai", "achha", "ठीक है", "अच्छा", "ओके"},
+}
+
+
+def small_talk(text: str) -> str | None:
+    token = " ".join(text.casefold().strip(" .!?,।").split())
+    for kind, variants in PLEASANTRIES.items():
+        if token in variants:
+            return (SMALL_TALK_HI if HINDI.search(text) else SMALL_TALK)[kind]
+    return None

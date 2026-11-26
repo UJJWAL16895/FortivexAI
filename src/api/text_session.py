@@ -1,18 +1,22 @@
 import asyncio
 import json
+from collections.abc import Callable
 from contextlib import aclosing
 from secrets import token_urlsafe
-from typing import Annotated
+from typing import Annotated, Any
 
 from anyio import create_task_group
 from fastapi import WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, ConfigDict, StringConstraints, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError
 
 from src.analytics.worker import Call, Insights
 from src.api.live_mode import ConnectionMode, Mode, live_allowed, send_mode, switch_mode
 from src.core.settings import Settings
 from src.crm.conversation import BookingSession
+from src.llm.claims import small_talk
+from src.llm.grounded import HOW
 from src.llm.reply import ReplyPath
+from src.llm.sentences import SentenceBuffer
 from src.memory.session import LeadSession
 from src.rag.index import Knowledge
 
@@ -22,6 +26,7 @@ class TextTurn(BaseModel):
     text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
     simulate_failure: bool = False
     end_call: bool = False
+    turn_id: Annotated[int, Field(ge=1, le=2_147_483_647)] | None = None
 
 
 class ModeRequest(BaseModel):
@@ -61,7 +66,21 @@ async def text_session(socket: WebSocket) -> None:
 
         async def handle_until_end() -> None:
             try:
-                await run_turns(socket, incoming)
+
+                async def publish_analysis(
+                    turn_id: int, result: asyncio.Future[dict[str, Any]]
+                ) -> None:
+                    try:
+                        await socket.send_json(
+                            {"type": "analysis", "turn_id": turn_id, **await result}
+                        )
+                    except WebSocketDisconnect:
+                        return
+
+                def publish(turn_id: int, result: asyncio.Future[dict[str, Any]]) -> None:
+                    tasks.start_soon(publish_analysis, turn_id, result)
+
+                await run_turns(socket, incoming, publish)
             finally:
                 tasks.cancel_scope.cancel()
 
@@ -69,7 +88,11 @@ async def text_session(socket: WebSocket) -> None:
         tasks.start_soon(handle_until_end)
 
 
-async def run_turns(socket: WebSocket, incoming: asyncio.Queue[dict[str, object]]) -> None:
+async def run_turns(
+    socket: WebSocket,
+    incoming: asyncio.Queue[dict[str, object]],
+    publish: Callable[[int, asyncio.Future[dict[str, Any]]], None],
+) -> None:
 
     settings: Settings = socket.app.state.settings
     replies: ReplyPath = socket.app.state.replies
@@ -137,7 +160,9 @@ async def run_turns(socket: WebSocket, incoming: asyncio.Queue[dict[str, object]
                 else None
             )
             local_reply = booking_reply or (
-                session.handle(turn.text) if not turn.simulate_failure else None
+                (session.handle(turn.text) or small_talk(turn.text))
+                if not turn.simulate_failure
+                else None
             )
             answer = (
                 await asyncio.to_thread(knowledge.lookup, turn.text)
@@ -164,18 +189,47 @@ async def run_turns(socket: WebSocket, incoming: asyncio.Queue[dict[str, object]
                         "status": "active",
                     }
                 )
-                await socket.send_json({"type": "sentence", "text": text})
+                origin = "knowledge" if citation else "approved"
+                first = None
+                if (
+                    answer
+                    and answer.chunk
+                    and answer.chunk.kind in {"product", "faq"}
+                    and state.mode == "live"
+                    and HOW.search(turn.text)
+                ):
+                    elaboration, first, limited = await replies.elaborate(answer.text)
+                    state.quota_notice = limited
+                    if elaboration:
+                        text, origin = elaboration, "gemini"
+                        await socket.send_json(
+                            {
+                                "type": "provider",
+                                "provider": "Gemini A",
+                                "model": settings.gemini_model,
+                                "status": "active",
+                            }
+                        )
+                        await socket.send_json({"type": "first_text", "latency_ms": first})
+                assert text is not None
+                if origin == "gemini":
+                    splitter = SentenceBuffer()
+                    for sentence in [*splitter.push(text), *splitter.finish()]:
+                        await socket.send_json({"type": "sentence", "text": sentence})
+                else:
+                    await socket.send_json({"type": "sentence", "text": text})
                 await socket.send_json(
                     {
                         "type": "reply",
                         "text": text,
-                        "provider": label,
+                        "provider": settings.gemini_model if origin == "gemini" else label,
                         "mode": label,
                         "citation": citation,
-                        "latency_ms": None,
+                        "latency_ms": first if origin == "gemini" else None,
+                        "origin": origin,
+                        "passage": answer.text if origin == "gemini" and answer else None,
                     }
                 )
-                assert text is not None
                 if booking_reply is None:
                     session.remember(turn.text, text)
             else:
@@ -198,9 +252,12 @@ async def run_turns(socket: WebSocket, incoming: asyncio.Queue[dict[str, object]
                     mode="json", exclude_none=True, exclude={"language"}
                 )
                 await asyncio.to_thread(booking.crm.save, booking.contact, fields)
+            result = None
             if not turn.simulate_failure:
                 call.booked = booking.booked
-                insights.submit(call, turn.text)
+                if turn.turn_id is not None:
+                    result = asyncio.get_running_loop().create_future()
+                insights.submit(call, turn.text, result)
             await socket.send_json(
                 {
                     "type": "profile",
@@ -210,6 +267,8 @@ async def run_turns(socket: WebSocket, incoming: asyncio.Queue[dict[str, object]
                     else None,
                 }
             )
+            if turn.turn_id is not None and result is not None:
+                publish(turn.turn_id, result)
             if starting_live and not turn.simulate_failure:
                 usage = replies.budget.usage()
                 if state.mode == "live" and (state.quota_notice or usage["used"] >= usage["cap"]):

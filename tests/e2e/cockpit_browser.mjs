@@ -10,7 +10,7 @@ const browser = await puppeteer.launch({ executablePath: chrome, headless: true,
 const origin = new URL(url).origin
 try {
   if (screenshots) await mkdir(screenshots, { recursive: true })
-  for (const width of [1440, 768, 390]) {
+  for (const width of [1440, 1280, 768, 390]) {
     const page = await browser.newPage()
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
@@ -25,8 +25,13 @@ try {
     await page.waitForSelector('.connected')
     await page.waitForSelector('.mock-ribbon')
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+    assert(await page.evaluate(() => [...document.querySelectorAll('.cockpit-header button, .cockpit-header a, .intelligence-panel')]
+      .filter(element => element.getClientRects().length).every(element => {
+        const box = element.getBoundingClientRect()
+        return box.left >= 0 && box.right <= innerWidth
+      })))
     const gridColumns = await page.$eval('.cockpit-grid', element => getComputedStyle(element).gridTemplateColumns.split(' ').length)
-    assert.equal(gridColumns, width === 1440 ? 3 : width === 768 ? 2 : 1)
+    assert.equal(gridColumns, width >= 1280 ? 3 : width === 768 ? 2 : 1)
     await page.keyboard.press('Tab')
     assert.equal(await page.evaluate(() => document.activeElement.textContent), 'Skip to console')
     await page.$eval('.cockpit-skip', element => element.blur())
@@ -35,10 +40,10 @@ try {
       await page.evaluate(() => window.scrollTo(0, 0))
       await page.screenshot({ path: join(screenshots, 'cockpit-' + (width === 390 ? 'mobile' : 'desktop') + '-' + stage + '.png'), fullPage: stage !== 'insights' })
     }
-    if (width === 768) {
+    if (width === 768 || width === 1280) {
       assert.deepEqual(errors, [])
       await page.close()
-      console.log('768 px: two columns, connected, keyboard skip link, zero errors and overflow')
+      console.log(width + ' px: expected columns, header bounds, connected, keyboard skip link, zero errors and overflow')
       continue
     }
     await screenshot('empty')
@@ -54,6 +59,8 @@ try {
     assert.equal(await page.$$eval('.message.buyer', messages => messages.length), 0)
     await page.locator('.guide-next').click()
     await page.waitForSelector('.citation-chip', { visible: true })
+    await page.waitForFunction(() => document.querySelector('.reply-source') &&
+      [...document.querySelectorAll('.reply-source')].some(label => label.textContent === 'Knowledge card'))
     await page.click('.citation-chip')
     await page.waitForFunction(() => document.querySelector('dialog[open] blockquote')?.textContent.includes('2,499'))
     await page.keyboard.press('Escape')
@@ -65,7 +72,7 @@ try {
       await page.keyboard.press('Enter')
       await page.waitForFunction(phrase => [...document.querySelectorAll('.message.agent:not(.streaming) p')].at(-1)?.textContent.includes(phrase), {}, expected)
     }
-    await type('Can I get 40% off?', 'specialist follow up')
+    await type('Can I get 40% off?', 'Discounts are handled')
     await page.waitForSelector('.event-note')
     await screenshot('conversation')
     await page.type('#message', 'My name is Asha.')
@@ -74,6 +81,9 @@ try {
     await page.type('#message', 'I am the owner. We need inventory tools this month. Our budget is fixed, but I am frustrated.')
     await page.keyboard.press('Enter')
     await page.waitForFunction(() => document.querySelector('[aria-label="Lead profile"]')?.textContent.includes('inventory tools'))
+    await page.waitForSelector('.turn-sentiment[data-tone=negative]')
+    await page.waitForFunction(() => document.querySelector('.sentiment-sparkline circle[data-tone=negative]') &&
+      document.querySelector('[aria-label="Lead score"] .intel-value')?.textContent.includes('Hot 100'))
     const contact = 'cockpit-' + width + '-' + Date.now() + '@example.test'
     await type('My email is ' + contact, 'saved the demo contact')
     await type('Book a demo', 'UTC+05:30')

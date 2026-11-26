@@ -159,3 +159,13 @@ A socket stores mode like a setting on one call. An opaque handle lets the speec
 3. **What happens when local Whisper is missing?** The ready message explains that the connection will use Gemini STT.
 4. **Why doesn't changing mode reset the lead?** The existing connection keeps the same LeadSession.
 5. **What does localStorage keep?** A mode preference. LIVE is checked again on a new connection.
+
+### STEP-022 · Cockpit polish
+
+Read text_session.py, analytics/worker.py and llm/grounded.py. The new event is like an analysis receipt addressed to one buyer message. The socket can keep replying while the worker fills the label. Try a greeting, a negative turn and a confirmed count, then trace each UI update.
+
+1. **Does “Hello” ask Gemini for product facts?** No. It returns a short approved welcome.
+2. **How does one buyer message get its own label?** The analysis event echoes that message’s optional turn ID.
+3. **Can Gemini add a product detail to an elaboration?** No. The full output must be one of the two reviewed forms.
+4. **What happens when Gemini times out on an explanation?** The already retrieved knowledge card remains the answer.
+5. **What does an abstention mean for discounts or refunds?** The corpus could not back up the offer or policy. The response offers a sales follow-up.

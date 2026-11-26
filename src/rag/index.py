@@ -27,6 +27,24 @@ UNSUPPORTED = re.compile(
     re.I,
 )
 PERCENT = re.compile(r"\d+(?:\.\d+)?\s*(?:%|percent\b)", re.I)
+DISCOUNT = re.compile(r"\b(?:discounts?|off|percent|chhoot)\b|%|छूट", re.I)
+REFUND = re.compile(r"\brefunds?\b|रिफंड|पैसे वापस", re.I)
+
+
+def abstention(query: str) -> str:
+    if REFUND.search(query):
+        return (
+            "रिफंड के सवाल हमारी सेल्स टीम देखती है। मैं उनसे बात करवाने में मदद कर सकता हूँ।"
+            if HINDI.search(query)
+            else "Refund questions are handled by our sales team. I can arrange a follow-up with them."
+        )
+    if DISCOUNT.search(query):
+        return (
+            "छूट के सवाल हमारी सेल्स टीम देखती है। मैं उनसे बात करवाने में मदद कर सकता हूँ।"
+            if HINDI.search(query)
+            else "Discounts are handled by our sales team. I can arrange a follow-up with them."
+        )
+    return ABSTAIN
 
 
 def words(text: str) -> str:
@@ -96,11 +114,11 @@ class Knowledge:
 
     def lookup(self, query: str) -> Answer | None:
         prepared = " " + words(query) + " "
-        commercial = bool(PRODUCT_QUESTION.search(query) or PERCENT.search(query))
-        if UNSUPPORTED.search(query):
-            return Answer(ABSTAIN)
+        commercial = bool(PRODUCT_QUESTION.search(query) or DISCOUNT.search(query))
+        if UNSUPPORTED.search(query) or REFUND.search(query):
+            return Answer(abstention(query))
         prices = re.search(r"\b(?:price|pricing|cost|costs|kitne|rupees?)\b|कीमत|दाम", query, re.I)
-        discount = re.search(r"\b(?:discount|off|percent)\b|%|छूट", query, re.I)
+        discount = DISCOUNT.search(query)
         candidates = [
             (index, chunk, file)
             for index, (chunk, file) in enumerate(self.records)
@@ -157,6 +175,6 @@ class Knowledge:
                 value.replace(" ", "") not in chunk.en.replace(" ", "")
                 for value in PERCENT.findall(query)
             ):
-                return Answer(ABSTAIN)
+                return Answer(abstention(query))
             return Answer(chunk.hi if HINDI.search(query) else chunk.en, chunk, file)
-        return Answer(ABSTAIN) if commercial or QUESTION.search(query) else None
+        return Answer(abstention(query)) if commercial or QUESTION.search(query) else None

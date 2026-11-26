@@ -13,3 +13,5 @@ Each socket owns one LeadSession. After a valid turn the server sends a profile 
 ## Optional mode control
 
 A client can send a frame containing only a mode field, either live or mock. mode_status events carry a phase, effective mode, sanitized message, optional probe timing and model, and a quota snapshot. The ready event also includes live_allowed, quota and an ephemeral voice_session handle. The browser passes that handle as X-Voice-Session on existing voice requests. It expires with the socket. Existing text turn frames and reply events are unchanged. An optional quota event refreshes the rolling process counter.
+
+A buyer text frame may include turn_id. The background worker's analysis event echoes it and carries a status, sentiment, cumulative score, rating and scoring reasons when available. Without turn_id the event is omitted. Replies can include an origin, the original passage for a grounded elaboration and an approved_follow_up marker for mixed provenance.

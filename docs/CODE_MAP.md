@@ -54,3 +54,9 @@
 ## Connection mode
 
 Console.jsx → chooseMode → WebSocket mode frame → text_session.py → live_mode.py / switch_mode. The handler reserves a provider request, probes Gemini in llm/gemini.py, then warms cached Whisper in voice/local.py. The resulting state belongs to the socket. The voice HTTP routes resolve X-Voice-Session to that state. ReplyPath.stream accepts the connection's mode and keeps the process-wide budget.
+
+## Live analysis and grounded replies
+
+text_session.py attaches the optional turn ID to the worker result after sending the reply and profile. analytics/worker.py computes the existing sentiment and BANT rules and returns a snapshot. Console.jsx applies the event to the matching buyer bubble, then CockpitPanels.jsx renders the badge, trend and score.
+
+For product explanations, rag/index.py retrieves the card and llm/reply.py tries a short grounded selection in live mode. llm/grounded.py checks the complete output before it can reach text or speech. The citation opens the original passage.

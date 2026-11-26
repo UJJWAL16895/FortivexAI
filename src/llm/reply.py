@@ -18,6 +18,7 @@ from src.llm.claims import (
     follow_up,
 )
 from src.llm.gemini import SPOKEN_PROMPT, ProviderError, stream_gemini
+from src.llm.grounded import grounded_options, grounded_reply
 from src.llm.mock import MockLLM
 from src.llm.sentences import SentenceBuffer
 
@@ -73,6 +74,46 @@ class ReplyPath:
         self.mock: LLMProvider = MockLLM()
         self.budget = RequestBudget(settings.gemini_rpm, settings.gemini_daily, settings.gemini_tpm)
         self.cache: dict[tuple[str, str], tuple[float, str]] = {}
+
+    async def elaborate(self, passage: str) -> tuple[str | None, float | None, bool]:
+        settings = self.settings
+        if self.client is None or settings.gemini_api_key is None:
+            return None, None, False
+        options = grounded_options(passage)
+        prompt = (
+            "Return exactly one of these reviewed two-sentence replies, verbatim:\n"
+            + "\n".join(options)
+        )
+        start = monotonic()
+        first = None
+        draft = ""
+        try:
+            self.budget.reserve(len(prompt.encode()) + 64)
+            async with (
+                asyncio.timeout(3),
+                aclosing(
+                    stream_gemini(
+                        self.client,
+                        settings.gemini_api_key.get_secret_value().strip(),
+                        settings.gemini_model,
+                        settings.gemini_thinking,
+                        prompt,
+                    )
+                ) as chunks,
+            ):
+                async for delta in chunks:
+                    if first is None and delta.strip():
+                        first = round((monotonic() - start) * 1000, 2)
+                    draft += delta
+                    if len(draft) > 500:
+                        return None, first, False
+        except ProviderError as error:
+            if error.status == 429 and not error.local:
+                self.budget.cooldown = monotonic() + 10
+            return None, first, error.status == 429
+        except TimeoutError:
+            return None, first, False
+        return grounded_reply(draft, passage), first, False
 
     async def _live(
         self,
@@ -247,5 +288,7 @@ class ReplyPath:
                 "provider": model,
                 "latency_ms": first_ms,
                 "mode": "policy" if use_policy else "mock" if label == "mock" else "live",
+                "origin": "approved" if use_policy else "mock" if label == "mock" else "gemini",
+                "approved_follow_up": blocked and not use_policy,
             }
             return

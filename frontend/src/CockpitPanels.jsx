@@ -45,20 +45,24 @@ export function CallPanel({ mic, stage, micLevel, recordingMs, busy, toggleMic, 
 }
 
 function ChatMessage({ entry, openSource }) {
-  const { role, text, mode, citation, time, language, guarded, execution } = entry
+  const { role, text, mode, citation, time, language, guarded, execution, source, passage, turnId, analysis, approvedFollowUp } = entry
   if (role === 'divider') return <p className="mode-divider">{text}</p>
   const slot = bookingTime(mode, text)
   const languageTag = receivedLanguage(text) || language
   return <div className={'message ' + role}>
     <div className="message-meta">
       <b className="message-avatar" aria-hidden="true">{role === 'buyer' ? 'Y' : role === 'notice' ? '!' : 'S'}</b>
-      <span>{role === 'buyer' ? 'You' : role === 'notice' ? 'Session' : 'ShelfPilot'}{mode && ' · ' + mode.toUpperCase()}</span>
+      <span>{role === 'buyer' ? 'You' : role === 'notice' ? 'Session' : 'ShelfPilot'}</span>
+      {role === 'agent' && <span className="reply-source">{source || 'Scripted/approved phrase'}</span>}
+      {approvedFollowUp && <span className="reply-source">Scripted/approved phrase · follow-up</span>}
       {execution && execution !== mode && <span title="Connection mode for this reply">{execution.toUpperCase()} session</span>}
       {time && <time dateTime={new Date(time).toISOString()}>{new Date(time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</time>}
       {languageTag && <span>{languageTag}</span>}
     </div>
     <p>{text}</p>
-    {citation && <small><button className="citation-chip" type="button" onClick={() => openSource({ citation, text })}>
+    {turnId && <span className={'turn-sentiment ' + (!analysis ? 'turn-skeleton' : '')}
+      data-tone={analysis?.toLowerCase()}>{analysis === 'unavailable' ? 'Analysis unavailable' : analysis || 'Analyzing…'}</span>}
+    {citation && <small><button className="citation-chip" type="button" onClick={() => openSource({ citation, text: passage || text })}>
       <Icon name="doc" size={15}/>{citation.title}
     </button><span className="sr-only">Source · {citation.source}#{citation.id}</span></small>}
     {!citation && mode === 'knowledge' && <small className="event-note">No source: abstained</small>}
@@ -94,30 +98,35 @@ function IntelligenceGroup({ title, children, className = '' }) {
   return <section className={'intel-card ' + className} aria-label={title}><h3>{title}</h3>{children}</section>
 }
 
-function Sentiment({ report, analyzing }) {
+function Sentiment({ labels, analyzing, live }) {
+  const tail = labels.slice(-24)
+  const points = tail.map((label, index) => [4 + index * 112 / Math.max(1, tail.length - 1), { Positive: 5, Neutral: 17, Negative: 29 }[label]])
   return <IntelligenceGroup title="Sentiment">
-    {report?.sentiment?.length ? <>
-      <div className="sentiment-trend" aria-label={'Sentiment by turn: ' + report.sentiment.join(', ')}>
-        {report.sentiment.map((label, index) => <span key={index} data-tone={label.toLowerCase()} title={label}/>)}
-      </div>
-      <p className="intel-value">{report.sentiment.at(-1)}</p>
-      <p className="cockpit-muted">Latest saved call</p>
-    </> : <AnalysisPending analyzing={analyzing}/>}
+    {tail.length > 0 && <>
+      <svg className="sentiment-sparkline" viewBox="0 0 120 34" role="img" aria-label={'Recent sentiment: ' + tail.join(', ')}>
+        <path d="M4 17h112" className="sparkline-axis"/>
+        <polyline points={points.map(point => point.join(',')).join(' ')} />
+        {points.map(([x, y], index) => <circle key={index} cx={x} cy={y} r="2.5" data-tone={tail[index].toLowerCase()}/>)}
+      </svg>
+      <p className="intel-value">{tail.at(-1)}</p>
+      <p className="cockpit-muted">{live ? 'Current call' : 'Latest saved call'}</p>
+    </>}
+    {(analyzing || !tail.length) && <AnalysisPending analyzing={analyzing}/>}
   </IntelligenceGroup>
 }
 
 function AnalysisPending({ analyzing }) {
   return <div className="analysis-pending" aria-busy={analyzing}>
     <span className={analyzing ? 'analysis-skeleton' : 'analysis-track'} aria-hidden="true"/>
-    <p>{analyzing ? 'Analyzing…' : 'Available after the call ends.'}</p>
+    <p>{analyzing ? 'Analyzing…' : 'Waiting for an analyzed turn.'}</p>
   </div>
 }
 
-function LeadScore({ report, analyzing }) {
+function LeadScore({ report, analyzing, live }) {
   return <IntelligenceGroup title="Lead score">
     {report ? <>
       <p className="intel-value"><span className="rating" data-rating={report.rating}>{report.rating}</span> {report.score}<small>/100</small></p>
-      <p className="cockpit-muted">Latest saved call</p>
+      <p className="cockpit-muted">{live ? 'Current call' : 'Latest saved call'}</p>
       <div className="score-track" aria-hidden="true"><i style={{ transform: 'scaleX(' + report.score / 100 + ')' }}/></div>
       <div className="bant-list">{bant.map(([label, reason]) => {
         const captured = report.reasons.includes(reason)
@@ -166,7 +175,7 @@ function Latency({ latency, voiceInfo }) {
   </IntelligenceGroup>
 }
 
-export function Intelligence({ report, analyzing, lead, needsConfirmation, confirmed, latency, voiceInfo, provider, trace, allowFallback, busy, simulate, openRecords, reconnect, status }) {
+export function Intelligence({ report, live, sentiment, analyzing, lead, needsConfirmation, confirmed, latency, voiceInfo, provider, trace, allowFallback, busy, simulate, openRecords, reconnect, status }) {
   return <aside id="intelligence-panel" className="cockpit-card intelligence-panel" aria-labelledby="intelligence-title">
     <div className="cockpit-card-head"><Icon name="pulse"/><h2 id="intelligence-title">Live intelligence</h2></div>
     <div className="intel-stack">
@@ -174,8 +183,8 @@ export function Intelligence({ report, analyzing, lead, needsConfirmation, confi
         {[['crm', 'View demo CRM'], ['bookings', 'Bookings'], ['summary', 'Call summary'], ['insights', 'View insights']].map(([view, label]) =>
           <button type="button" className="cockpit-button" key={view} onClick={() => openRecords(view)}>{label}</button>)}
       </div>
-      <Sentiment report={report} analyzing={analyzing}/>
-      <LeadScore report={report} analyzing={analyzing}/>
+      <Sentiment labels={live ? sentiment : report?.sentiment || []} analyzing={analyzing} live={live}/>
+      <LeadScore report={report} analyzing={analyzing} live={live}/>
       <LeadProfile lead={lead} needsConfirmation={needsConfirmation} confirmed={confirmed}/>
       <Latency latency={latency} voiceInfo={voiceInfo}/>
       <IntelligenceGroup title="Provider trace" className="technical-card">
