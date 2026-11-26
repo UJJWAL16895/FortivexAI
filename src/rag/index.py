@@ -12,6 +12,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from src.llm.claims import HINDI, PRODUCT_QUESTION
+from src.llm.conversation import Evidence
 
 ROOT = Path(__file__).resolve().parents[2] / "data" / "knowledge"
 MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
@@ -82,6 +83,31 @@ class Knowledge:
         self.records = records
         self.embedder: Any = None
         self.vectors: list[list[float]] = []
+
+    def retrieve(self, query: str) -> tuple[Evidence, ...]:
+        """Rank reviewed passages uniformly. The results never choose a reply route."""
+        query_terms = set(words(query).split())
+        candidates: list[tuple[float, Evidence]] = []
+        vector = (
+            unit(next(self.embedder.embed([query])).tolist())
+            if self.embedder is not None and self.vectors
+            else None
+        )
+        for index, (chunk, source) in enumerate(self.records):
+            passage = chunk.hi if HINDI.search(query) else chunk.en
+            topic = set(words(chunk.id).split())
+            terms = set(words(passage).split())
+            rank = len(query_terms & terms) + 2 * len(query_terms & topic)
+            if rank:
+                candidates.append((float(rank), Evidence(chunk.id, chunk.title, source, passage)))
+            elif vector is not None:
+                similarity = sum(a * b for a, b in zip(vector, self.vectors[index], strict=True))
+                if similarity >= SEMANTIC_THRESHOLD:
+                    candidates.append(
+                        (similarity, Evidence(chunk.id, chunk.title, source, passage))
+                    )
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        return tuple(evidence for _, evidence in candidates[:3])
 
     @classmethod
     def load(cls, root: Path = ROOT) -> "Knowledge":

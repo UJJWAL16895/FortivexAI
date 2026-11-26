@@ -1,29 +1,21 @@
 import asyncio
+import json
 import random
 from collections import deque
 from collections.abc import AsyncGenerator
 from contextlib import aclosing
 from time import monotonic
-from typing import Any, Literal, Protocol
+from typing import Any, Protocol
 
 import httpx
+from pydantic import ValidationError
 
 from src.core.settings import Settings
-from src.llm.claims import (
-    APPROVED,
-    CHECK_SHORT_EN,
-    CHECK_SHORT_HI,
-    HINDI,
-    PRODUCT_QUESTION,
-    follow_up,
-)
-from src.llm.gemini import SPOKEN_PROMPT, ProviderError, stream_gemini
-from src.llm.grounded import grounded_options, grounded_reply
+from src.llm.conversation import PERSONA, Evidence, LiveDraft, check_line, sentences
+from src.llm.gemini import ProviderError, stream_gemini
 from src.llm.mock import MockLLM
 from src.llm.sentences import SentenceBuffer
 
-# Cache only fixed synthetic quick prompts, without customer content or conversation history.
-CACHEABLE = {"How do I manage multiple stores?", "How much does it cost?", "Can I see a demo?"}
 REPLY_TIMEOUT = 9.0
 
 
@@ -73,75 +65,110 @@ class ReplyPath:
         self.client = client
         self.mock: LLMProvider = MockLLM()
         self.budget = RequestBudget(settings.gemini_rpm, settings.gemini_daily, settings.gemini_tpm)
-        self.cache: dict[tuple[str, str], tuple[float, str]] = {}
 
-    async def elaborate(self, passage: str) -> tuple[str | None, float | None, bool]:
+    async def converse(
+        self,
+        text: str,
+        history: tuple[tuple[str, str], ...],
+        profile: dict[str, Any],
+        evidence: tuple[Evidence, ...],
+    ) -> AsyncGenerator[dict[str, Any]]:
         settings = self.settings
-        if self.client is None or settings.gemini_api_key is None:
-            return None, None, False
-        options = grounded_options(passage)
-        prompt = (
-            "Return exactly one of these reviewed two-sentence replies, verbatim:\n"
-            + "\n".join(options)
+        context = json.dumps(
+            {
+                "lead": profile,
+                "passages": [{"id": item.id, "text": item.text} for item in evidence],
+            },
+            ensure_ascii=False,
         )
-        start = monotonic()
-        first = None
-        draft = ""
-        try:
-            self.budget.reserve(len(prompt.encode()) + 64)
-            async with (
-                asyncio.timeout(3),
-                aclosing(
-                    stream_gemini(
-                        self.client,
-                        settings.gemini_api_key.get_secret_value().strip(),
-                        settings.gemini_model,
-                        settings.gemini_thinking,
-                        prompt,
-                    )
-                ) as chunks,
-            ):
-                async for delta in chunks:
-                    if first is None and delta.strip():
-                        first = round((monotonic() - start) * 1000, 2)
-                    draft += delta
-                    if len(draft) > 500:
-                        return None, first, False
-        except ProviderError as error:
-            if error.status == 429 and not error.local:
-                self.budget.cooldown = monotonic() + 10
-            return None, first, error.status == 429
-        except TimeoutError:
-            return None, first, False
-        return grounded_reply(draft, passage), first, False
+        system = PERSONA + "\nSession data: " + context
+        started = monotonic()
+        for label, model, thinking in (
+            ("Gemini A", settings.gemini_model, settings.gemini_thinking),
+            ("Gemini B", settings.gemini_fallback_model, settings.gemini_fallback_thinking),
+        ):
+            if not model:
+                continue
+            yield {"type": "provider", "provider": label, "model": model, "status": "trying"}
+            first = None
+            raw = ""
+            try:
+                async with aclosing(self._live(model, thinking, text, history, system)) as stream:
+                    async for delta in stream:
+                        if first is None and delta.strip():
+                            first = round((monotonic() - started) * 1000, 2)
+                            yield {"type": "first_text", "latency_ms": first}
+                        raw += delta
+                        if len(raw) > 2400:
+                            raise ProviderError(502)
+                draft = LiveDraft.model_validate_json(raw)
+            except (ProviderError, ValidationError) as error:
+                code = error.status if isinstance(error, ProviderError) else 502
+                if code == 429 and isinstance(error, ProviderError) and not error.local:
+                    self.budget.cooldown = monotonic() + 10
+                yield {
+                    "type": "provider",
+                    "provider": label,
+                    "model": model,
+                    "status": "failed",
+                    "code": code,
+                }
+                continue
+            lines = [
+                check_line(line.model_copy(update={"text": sentence}), evidence)
+                for line in draft.lines
+                for sentence in sentences(line.text)
+            ][:2]
+            if not lines:
+                yield {
+                    "type": "provider",
+                    "provider": label,
+                    "model": model,
+                    "status": "failed",
+                    "code": 502,
+                }
+                continue
+            yield {"type": "provider", "provider": label, "model": model, "status": "active"}
+            yield {
+                "type": "draft",
+                "action": draft.action,
+                "lines": lines,
+                "model": model,
+                "latency_ms": first,
+            }
+            return
+        yield {"type": "unavailable"}
 
     async def _live(
         self,
         model: str,
         thinking: str,
         text: str,
-        simulate: bool,
-        history: tuple[tuple[str, str], ...] = (),
+        history: tuple[tuple[str, str], ...],
+        system: str,
     ) -> AsyncGenerator[str]:
-        if simulate:
-            raise ProviderError(503)
         assert self.client is not None and self.settings.gemini_api_key is not None
         key = self.settings.gemini_api_key.get_secret_value().strip()
-        cached = self.cache.get((model, text)) if not history else None
-        if cached and monotonic() - cached[0] < 300:
-            yield cached[1]
-            return
+        context_bytes = sum(
+            len(buyer.encode()) + len(agent.encode()) + 16 for buyer, agent in history
+        )
         for attempt in range(2):
-            context_bytes = sum(
-                len(buyer.encode()) + len(agent.encode()) + 16 for buyer, agent in history
-            )
-            self.budget.reserve(len((SPOKEN_PROMPT + text).encode()) + context_bytes + 32)
+            self.budget.reserve(len((system + text).encode()) + context_bytes + 32)
             parts: list[str] = []
             try:
                 async with (
                     asyncio.timeout(REPLY_TIMEOUT),
                     aclosing(
-                        stream_gemini(self.client, key, model, thinking, text, history)
+                        stream_gemini(
+                            self.client,
+                            key,
+                            model,
+                            thinking,
+                            text,
+                            history,
+                            system,
+                            LiveDraft.model_json_schema(),
+                        )
                     ) as chunks,
                 ):
                     async for delta in chunks:
@@ -154,141 +181,36 @@ class ReplyPath:
                 if parts or attempt or error.status not in {500, 502, 503, 504}:
                     raise
                 await asyncio.sleep(0.15 * 2**attempt + random.uniform(0, 0.1))
-        if not history and text in CACHEABLE and parts:
-            self.cache[(model, text)] = (monotonic(), "".join(parts))
 
-    async def stream(
-        self,
-        text: str,
-        *,
-        simulate: bool = False,
-        history: tuple[tuple[str, str], ...] = (),
-        mode: Literal["mock", "live"] | None = None,
-    ) -> AsyncGenerator[dict[str, Any]]:
-        settings = self.settings
-        if PRODUCT_QUESTION.search(text) and not simulate:
-            sentences = follow_up(text)
-            yield {
-                "type": "provider",
-                "provider": "policy",
-                "model": "Knowledge guardrail",
-                "status": "active",
-            }
-            for sentence in sentences:
-                yield {"type": "sentence", "text": sentence}
-            yield {
-                "type": "reply",
-                "text": " ".join(sentences),
-                "provider": "policy",
-                "latency_ms": None,
-                "mode": "policy",
-            }
-            return
-        slots = (
-            ("Gemini A", settings.gemini_model, settings.gemini_thinking),
-            ("Gemini B", settings.gemini_fallback_model, settings.gemini_fallback_thinking),
-        )
-        candidates = (
-            [(label, model, thinking) for label, model, thinking in slots if model or simulate]
-            if simulate or (mode or settings.agent_mode) == "live"
-            else []
-        )
-        started = monotonic()
-        for label, model, thinking in [*candidates, ("mock", "mock", "")]:
-            yield {"type": "provider", "provider": label, "model": model, "status": "trying"}
-            buffer = SentenceBuffer()
-            parts: list[str] = []
-            spoken: list[str] = []
-            blocked = False
-            first_ms = 0.0
-            chunks = (
-                self.mock.stream(text)
-                if label == "mock"
-                else self._live(model, thinking, text, simulate, history)
-            )
-            try:
-                async with aclosing(chunks) as stream:
-                    async for delta in stream:
-                        if not parts and not delta.strip():
-                            continue
-                        if not parts:
-                            first_ms = round((monotonic() - started) * 1000, 2)
-                            yield {
-                                "type": "provider",
-                                "provider": label,
-                                "model": model,
-                                "status": "active",
-                            }
-                            yield {"type": "first_text", "latency_ms": first_ms}
-                        parts.append(delta)
-                        for sentence in buffer.push(delta):
-                            if sentence in APPROVED and not spoken:
-                                spoken.append(sentence)
-                                yield {
-                                    "type": "delta",
-                                    "text": (" " if len(spoken) > 1 else "") + sentence,
-                                }
-                                yield {"type": "sentence", "text": sentence}
-                            elif sentence not in APPROVED:
-                                blocked = True
-                                break
-                        if blocked:
-                            break
-                if not parts:
-                    raise ProviderError(502)
-            except ProviderError as error:
+    async def stream(self, text: str, *, simulate: bool = False) -> AsyncGenerator[dict[str, Any]]:
+        if simulate:
+            for label, model in (
+                ("Gemini A", self.settings.gemini_model),
+                ("Gemini B", self.settings.gemini_fallback_model),
+            ):
                 yield {
                     "type": "provider",
                     "provider": label,
                     "model": model,
                     "status": "failed",
-                    "code": error.status,
-                    "quota": "local limit"
-                    if error.local
-                    else "provider throttled"
-                    if error.status == 429
-                    else None,
+                    "code": 503,
                 }
-                if error.status == 429 and not error.local and not simulate:
-                    self.budget.cooldown = monotonic() + 10
-                if spoken:
-                    yield {
-                        "type": "error",
-                        "text": "The reply was interrupted. Please send a new turn.",
-                    }
-                    return
-                continue
-            for sentence in [] if blocked else buffer.finish():
-                if sentence in APPROVED and not blocked:
-                    spoken.append(sentence)
-                    yield {"type": "delta", "text": (" " if len(spoken) > 1 else "") + sentence}
-                    yield {"type": "sentence", "text": sentence}
-                elif sentence not in APPROVED:
-                    blocked = True
-            use_policy = not spoken
-            if use_policy or blocked:
-                yield {
-                    "type": "provider",
-                    "provider": "policy",
-                    "model": "Knowledge guardrail",
-                    "status": "active",
-                }
-                safe = (
-                    follow_up(text)
-                    if use_policy
-                    else (CHECK_SHORT_HI if HINDI.search(text) else CHECK_SHORT_EN,)
-                )
-                for sentence in safe:
-                    if sentence not in spoken:
-                        spoken.append(sentence)
-                        yield {"type": "sentence", "text": sentence}
-            yield {
-                "type": "reply",
-                "text": " ".join(spoken),
-                "provider": model,
-                "latency_ms": first_ms,
-                "mode": "policy" if use_policy else "mock" if label == "mock" else "live",
-                "origin": "approved" if use_policy else "mock" if label == "mock" else "gemini",
-                "approved_follow_up": blocked and not use_policy,
-            }
-            return
+        started = monotonic()
+        yield {"type": "provider", "provider": "mock", "model": "mock", "status": "active"}
+        buffer = SentenceBuffer()
+        draft = ""
+        async for chunk in self.mock.stream(text):
+            draft += chunk
+        first = round((monotonic() - started) * 1000, 2)
+        yield {"type": "first_text", "latency_ms": first}
+        yield {"type": "delta", "text": draft}
+        for sentence in [*buffer.push(draft), *buffer.finish()]:
+            yield {"type": "sentence", "text": sentence}
+        yield {
+            "type": "reply",
+            "text": draft,
+            "mode": "mock",
+            "origin": "mock",
+            "provider": "mock",
+            "latency_ms": first,
+        }

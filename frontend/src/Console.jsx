@@ -158,7 +158,7 @@ export default function App() {
         setConfiguredMode(event.mode)
         setMode(event.mode)
         if (event.model || event.phase !== 'failed') setLiveModel(event.model || '')
-        if (event.phase === 'ready' || event.phase === 'quota') {
+        if (['ready', 'quota', 'unavailable'].includes(event.phase)) {
           try {
             localStorage.setItem(MODE_PREFERENCE, event.mode)
           } catch {
@@ -230,6 +230,7 @@ export default function App() {
         mode: event.mode,
         citation: event.citation,
         source: event.origin === 'gemini' || event.mode === 'live' ? 'Gemini ' + event.provider
+          : event.origin === 'approved' ? 'Scripted/approved phrase'
           : event.citation ? 'Knowledge card' : event.mode === 'mock' ? 'Mock' : 'Scripted/approved phrase',
         passage: event.passage,
         approvedFollowUp: event.approved_follow_up,
@@ -562,7 +563,7 @@ export default function App() {
         : modePhase === 'warming' ? <><b>WARMING</b> Warming up voice…</>
         : modePhase === 'switching' ? 'Switching to mock…'
         : configuredMode === 'live' ? <><b>LIVE</b> {liveModel} · Latest Gemini first text {liveFirstText == null ? '—' : liveFirstText.toFixed(2) + ' ms'}</>
-        : configuredMode === 'mock' ? 'Mock mode: deterministic replies' : 'Connecting to ShelfPilot…'}
+        : configuredMode === 'mock' ? 'Mock mode: deterministic replies. Free conversation requires LIVE.' : 'Connecting to ShelfPilot…'}
       {probeMs != null && <span>Readiness · {liveModel} · {probeMs.toFixed(2)} ms</span>}
       {quota && <span title="Local process counter for provider requests over the last 24 hours">Live calls used today: {quota.used} / {quota.cap}</span>}
       {publicMode?.public && !liveAllowed && <span>{publicMode.locked && status !== 'Connected' ? 'Enter the evaluator access code to connect.' : 'Public live switching is disabled.'}</span>}

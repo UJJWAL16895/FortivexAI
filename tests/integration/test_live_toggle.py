@@ -31,8 +31,11 @@ def fake_provider(monkeypatch):
     async def warm():
         return True
 
-    async def stream(*_args):
-        yield "How many locations do you manage today?"
+    async def stream(*args):
+        if args[4] == "What do you remember?":
+            yield '{"action":"lead","lines":[{"text":"I can repeat your details.","kind":"conversation"}]}'
+        else:
+            yield '{"action":"none","lines":[{"text":"How many locations do you manage today?","kind":"conversation"}]}'
 
     monkeypatch.setattr("src.api.live_mode.probe_gemini", probe)
     monkeypatch.setattr("src.api.live_mode.warm", warm)

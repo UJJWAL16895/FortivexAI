@@ -50,9 +50,9 @@ async def test_slow_provider_has_a_bounded_timeout_and_mock_fallback(monkeypatch
     async with httpx.AsyncClient() as client:
         path = ReplyPath(settings, client)
         async with asyncio.timeout(1):
-            events = [event async for event in path.stream("Hello")]
+            events = [event async for event in path.converse("Hello", (), {}, ())]
     assert any(event.get("code") == 504 for event in events)
-    assert events[-1]["mode"] == "mock"
+    assert events[-1]["type"] == "unavailable"
 
 
 def test_contact_redaction_removes_values_from_logs(caplog):

@@ -11,7 +11,9 @@ TEST_KEY = "synthetic-test-key"
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("partial", [False, True])
-async def test_real_adapter_falls_back_only_before_visible_text(monkeypatch, tmp_path, partial):
+async def test_real_adapter_falls_back_without_releasing_incomplete_json(
+    monkeypatch, tmp_path, partial
+):
     monkeypatch.chdir(tmp_path)
     settings = Settings(
         agent_mode="live",
@@ -37,7 +39,21 @@ async def test_real_adapter_falls_back_only_before_visible_text(monkeypatch, tmp
                     "content": {
                         "parts": [
                             {
-                                "text": "How many locations do you manage today? What would you like to see in a demo?"
+                                "text": json.dumps(
+                                    {
+                                        "action": "none",
+                                        "lines": [
+                                            {
+                                                "kind": "conversation",
+                                                "text": "How many locations do you manage today?",
+                                            },
+                                            {
+                                                "kind": "conversation",
+                                                "text": "What would you like to see in a demo?",
+                                            },
+                                        ],
+                                    }
+                                )
                             }
                         ]
                     }
@@ -52,16 +68,16 @@ async def test_real_adapter_falls_back_only_before_visible_text(monkeypatch, tmp
         history = (("Previous buyer turn", "Previous safe reply"),)
         events = [
             event
-            async for event in ReplyPath(settings, client).stream("Hello there", history=history)
+            async for event in ReplyPath(settings, client).converse("Hello there", history, {}, ())
         ]
+    assert not any(event["type"] in {"delta", "sentence"} for event in events)
     if partial:
-        assert calls == ["fixture-a"]
-        assert events[-1]["type"] == "error"
+        assert calls == ["fixture-a", "fixture-b"]
+        assert events[-1]["type"] == "unavailable"
     else:
         assert calls == ["fixture-a", "fixture-a", "fixture-b"]
-        assert events[-1]["provider"] == "fixture-b"
-        assert events[-1]["mode"] == "live"
-        assert [event["text"] for event in events if event["type"] == "sentence"] == [
+        assert events[-1]["model"] == "fixture-b"
+        assert [line.text for line in events[-1]["lines"]] == [
             "How many locations do you manage today?",
             "What would you like to see in a demo?",
         ]

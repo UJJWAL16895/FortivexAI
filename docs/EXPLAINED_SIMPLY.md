@@ -155,6 +155,10 @@ Think of the switch as a setting on your own call. When you click LIVE, the serv
 
 ## Why each reply has a source label
 
-A greeting, readback or handoff offer uses words prepared in advance and shows Scripted/approved phrase. A product or price question usually reads the reviewed Knowledge card. For a supported “how does it work” question in LIVE mode, Gemini can pick a two-sentence version. The first sentence is the approved fact and the second is a friendly question. The server checks both before speaking. If Gemini returns something different or is unavailable, ShelfPilot reads the card. General LIVE replies still go through the guardrail, and deterministic model fallback shows Mock.
-
 The browser adds an Analyzing marker to each buyer message. When the background worker finishes, the marker becomes a sentiment label. The right column uses those actual results for its trend and cumulative BANT score. The confirmed profile still comes from the current session, and Insights holds the saved reports.
+
+## LIVE conversation today
+
+Every LIVE buyer turn goes to Gemini when the provider budget permits it. The model sees the recent conversation, the lead profile and any relevant reviewed passages. It can greet you, answer a yes or no in context, or ask about your stores. It marks which sentences make claims. The server checks the generated sentences before they reach the screen or speaker. A product claim needs an exact passage from the reviewed cards. When a claim fails, the rest of the reply stays. A provider outage has its own message and switches the call to MOCK. MOCK can show the rehearsed workflow with deterministic replies. It cannot understand free conversation.
+
+Gemini proposes application actions. The existing booking and lead checks still authorize them. Saying yes to a booking offer can prompt for a confirmation, and the booking requires the explicit confirmation command.

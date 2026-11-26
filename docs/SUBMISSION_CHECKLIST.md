@@ -43,3 +43,7 @@ See STEP-021 for the switch checks, screenshots and real smoke evidence. pre-liv
 ## Cockpit polish checkpoint
 
 See STEP-022 for source labels, live analysis, grounded elaboration and layout evidence. pre-polish points to the previous live-toggle checkpoint. demo-polish is the tagged release once the verification gates pass.
+
+## LIVE model-first conversation
+
+See STEP-023 for the fake-provider regression, partial real smoke and latency limits. pre-convo-fix restores the preceding cockpit release.

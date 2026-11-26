@@ -169,3 +169,13 @@ Read text_session.py, analytics/worker.py and llm/grounded.py. The new event is 
 3. **Can Gemini add a product detail to an elaboration?** No. The full output must be one of the two reviewed forms.
 4. **What happens when Gemini times out on an explanation?** The already retrieved knowledge card remains the answer.
 5. **What does an abstention mean for discounts or refunds?** The corpus could not back up the offer or policy. The response offers a sales follow-up.
+
+### STEP-023 · Model-first LIVE conversation
+
+Think of the model as a sales rep with a short notebook and reviewed fact cards on the desk. It sees the same kinds of context for every LIVE turn. There is no special greeting menu. A checker looks at the generated sentences before the browser sees them.
+
+1. **How does LIVE understand “no”?** It receives the previous question and recent dialogue.
+2. **When is a price released?** A cited sentence must match the reviewed passage.
+3. **What happens to other sentences when one claim fails?** They stay in the reply.
+4. **Can the model commit a booking by itself?** No. The server still checks the explicit command and available slot.
+5. **What did the real smoke establish?** The provider accepted a structured request in isolation. Socket requests hit failures and quota, so live reply latency remains unmeasured.

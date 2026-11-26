@@ -59,4 +59,8 @@ Console.jsx → chooseMode → WebSocket mode frame → text_session.py → live
 
 text_session.py attaches the optional turn ID to the worker result after sending the reply and profile. analytics/worker.py computes the existing sentiment and BANT rules and returns a snapshot. Console.jsx applies the event to the matching buyer bubble, then CockpitPanels.jsx renders the badge, trend and score.
 
-For product explanations, rag/index.py retrieves the card and llm/reply.py tries a short grounded selection in live mode. llm/grounded.py checks the complete output before it can reach text or speech. The citation opens the original passage.
+The citation opens the original reviewed passage. See the current LIVE route below.
+
+## Model-first LIVE turns
+
+run_turns routes LIVE to src/api/conversation.py → live_turn. Knowledge.retrieve finds reviewed text without selecting the reply path. ReplyPath.converse sends the latest buyer turn, prior pairs, the lead profile and passages to Gemini. check_line validates each generated sentence. An explicit tool proposal reaches the existing booking or lead checks only after generation.

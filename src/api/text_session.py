@@ -10,13 +10,11 @@ from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError
 
 from src.analytics.worker import Call, Insights
+from src.api.conversation import live_turn
 from src.api.live_mode import ConnectionMode, Mode, live_allowed, send_mode, switch_mode
 from src.core.settings import Settings
 from src.crm.conversation import BookingSession
-from src.llm.claims import small_talk
-from src.llm.grounded import HOW
 from src.llm.reply import ReplyPath
-from src.llm.sentences import SentenceBuffer
 from src.memory.session import LeadSession
 from src.rag.index import Knowledge
 
@@ -154,99 +152,79 @@ async def run_turns(
                     await send_mode(
                         socket, state, replies, "quota", "Live quota reached, using mock"
                     )
-            booking_reply = (
-                await asyncio.to_thread(booking.handle, turn.text, session)
-                if not turn.simulate_failure
-                else None
-            )
-            local_reply = booking_reply or (
-                (session.handle(turn.text) or small_talk(turn.text))
-                if not turn.simulate_failure
-                else None
-            )
-            answer = (
-                await asyncio.to_thread(knowledge.lookup, turn.text)
-                if local_reply is None and not turn.simulate_failure
-                else None
-            )
-            if local_reply is not None or answer is not None:
-                label = "booking" if booking_reply else "session" if answer is None else "knowledge"
-                text = answer.text if answer else local_reply
-                citation = (
-                    {"id": answer.chunk.id, "title": answer.chunk.title, "source": answer.source}
-                    if answer and answer.chunk
+            if state.mode == "live" and not turn.simulate_failure:
+                await live_turn(socket, turn.text, state, replies, knowledge, session, booking)
+            else:
+                booking_reply = (
+                    await asyncio.to_thread(booking.handle, turn.text, session)
+                    if not turn.simulate_failure
                     else None
                 )
-                await socket.send_json(
-                    {
-                        "type": "provider",
-                        "provider": label,
-                        "model": {
-                            "session": "Lead session",
-                            "knowledge": "ShelfPilot knowledge",
-                            "booking": "Booking and CRM",
-                        }[label],
-                        "status": "active",
-                    }
+                local_reply = booking_reply or (
+                    session.handle(turn.text) if not turn.simulate_failure else None
                 )
-                origin = "knowledge" if citation else "approved"
-                first = None
-                if (
-                    answer
-                    and answer.chunk
-                    and answer.chunk.kind in {"product", "faq"}
-                    and state.mode == "live"
-                    and HOW.search(turn.text)
-                ):
-                    elaboration, first, limited = await replies.elaborate(answer.text)
-                    state.quota_notice = limited
-                    if elaboration:
-                        text, origin = elaboration, "gemini"
-                        await socket.send_json(
-                            {
-                                "type": "provider",
-                                "provider": "Gemini A",
-                                "model": settings.gemini_model,
-                                "status": "active",
-                            }
-                        )
-                        await socket.send_json({"type": "first_text", "latency_ms": first})
-                assert text is not None
-                if origin == "gemini":
-                    splitter = SentenceBuffer()
-                    for sentence in [*splitter.push(text), *splitter.finish()]:
-                        await socket.send_json({"type": "sentence", "text": sentence})
-                else:
-                    await socket.send_json({"type": "sentence", "text": text})
-                await socket.send_json(
-                    {
-                        "type": "reply",
-                        "text": text,
-                        "provider": settings.gemini_model if origin == "gemini" else label,
-                        "mode": label,
-                        "citation": citation,
-                        "latency_ms": first if origin == "gemini" else None,
-                        "origin": origin,
-                        "passage": answer.text if origin == "gemini" and answer else None,
-                    }
+                answer = (
+                    await asyncio.to_thread(knowledge.lookup, turn.text)
+                    if local_reply is None and not turn.simulate_failure
+                    else None
                 )
-                if booking_reply is None:
-                    session.remember(turn.text, text)
-            else:
-                async with aclosing(
-                    replies.stream(
-                        turn.text,
-                        simulate=turn.simulate_failure,
-                        history=tuple(session.history),
-                        mode=state.mode,
+                if local_reply is not None or answer is not None:
+                    label = (
+                        "booking" if booking_reply else "session" if answer is None else "knowledge"
                     )
-                ) as events:
-                    async for event in events:
-                        await socket.send_json(event)
-                        if starting_live and not turn.simulate_failure and event.get("code") == 429:
-                            state.quota_notice = True
-                        if event["type"] == "reply" and not turn.simulate_failure:
-                            session.remember(turn.text, event["text"])
+                    text = answer.text if answer else local_reply
+                    citation = (
+                        {
+                            "id": answer.chunk.id,
+                            "title": answer.chunk.title,
+                            "source": answer.source,
+                        }
+                        if answer and answer.chunk
+                        else None
+                    )
+                    await socket.send_json(
+                        {
+                            "type": "provider",
+                            "provider": label,
+                            "model": {
+                                "session": "Lead session",
+                                "knowledge": "ShelfPilot knowledge",
+                                "booking": "Booking and CRM",
+                            }[label],
+                            "status": "active",
+                        }
+                    )
+                    origin = "knowledge" if citation else "approved"
+                    assert text is not None
+                    await socket.send_json({"type": "sentence", "text": text})
+                    await socket.send_json(
+                        {
+                            "type": "reply",
+                            "text": text,
+                            "provider": label,
+                            "mode": label,
+                            "citation": citation,
+                            "latency_ms": None,
+                            "origin": origin,
+                            "passage": None,
+                        }
+                    )
+                    if booking_reply is None:
+                        session.remember(turn.text, text)
+                else:
+                    async with aclosing(
+                        replies.stream(turn.text, simulate=turn.simulate_failure)
+                    ) as events:
+                        async for event in events:
+                            await socket.send_json(event)
+                            if (
+                                starting_live
+                                and not turn.simulate_failure
+                                and event.get("code") == 429
+                            ):
+                                state.quota_notice = True
+                            if event["type"] == "reply" and not turn.simulate_failure:
+                                session.remember(turn.text, event["text"])
             if booking.contact and not turn.simulate_failure:
                 fields = session.profile.model_dump(
                     mode="json", exclude_none=True, exclude={"language"}

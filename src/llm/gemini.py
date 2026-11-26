@@ -21,7 +21,11 @@ class ProviderError(Exception):
 
 
 def request_body(
-    text: str, thinking: str, history: tuple[tuple[str, str], ...] = ()
+    text: str,
+    thinking: str,
+    history: tuple[tuple[str, str], ...] = (),
+    system: str = SPOKEN_PROMPT,
+    schema: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     contents = [
         {"role": role, "parts": [{"text": value}]}
@@ -29,13 +33,21 @@ def request_body(
         for role, value in (("user", buyer), ("model", assistant))
     ]
     return {
-        "systemInstruction": {"parts": [{"text": SPOKEN_PROMPT}]},
+        "systemInstruction": {"parts": [{"text": system}]},
         "contents": [*contents, {"role": "user", "parts": [{"text": text}]}],
         "generationConfig": {
-            "maxOutputTokens": 192,
+            "maxOutputTokens": 384 if schema is not None else 192,
             "thinkingConfig": {"thinkingBudget": 0}
             if thinking == "off"
             else {"thinkingLevel": thinking},
+            **(
+                {
+                    "responseMimeType": "application/json",
+                    "responseJsonSchema": schema,
+                }
+                if schema
+                else {}
+            ),
         },
     }
 
@@ -47,6 +59,8 @@ async def stream_gemini(
     thinking: str,
     text: str,
     history: tuple[tuple[str, str], ...] = (),
+    system: str = SPOKEN_PROMPT,
+    schema: dict[str, Any] | None = None,
 ) -> AsyncGenerator[str]:
     try:
         async with client.stream(
@@ -54,7 +68,7 @@ async def stream_gemini(
             f"{API}{model}:streamGenerateContent",
             params={"alt": "sse"},
             headers={"x-goog-api-key": key},
-            json=request_body(text, thinking, history),
+            json=request_body(text, thinking, history, system, schema),
         ) as response:
             if response.status_code != 200:
                 raise ProviderError(response.status_code)
