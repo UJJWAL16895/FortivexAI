@@ -64,3 +64,7 @@ The citation opens the original reviewed passage. See the current LIVE route bel
 ## Model-first LIVE turns
 
 run_turns routes LIVE to src/api/conversation.py → live_turn. Knowledge.retrieve finds reviewed text without selecting the reply path. ReplyPath.converse sends the latest buyer turn, prior pairs, the lead profile and passages to Gemini. check_line validates each generated sentence. An explicit tool proposal reaches the existing booking or lead checks only after generation.
+
+## LIVE bookings and analysis
+
+ReplyPath.converse validates LiveDraft in src/llm/conversation.py. src/api/conversation.py → apply_draft passes the structured booking fields to src/crm/live_booking.py → LiveBooking.advance. That state machine checks availability and builds replies from SQLite outcomes. A rejected generated draft is discarded once at the reply boundary. The same Gemini response carries sentiment, BANT evidence and a sales signal. text_session.py queues the result after replying. analytics/worker.py publishes the badge event and persists the completed call.

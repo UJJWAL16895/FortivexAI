@@ -153,6 +153,11 @@ components:
             - Negative
           type: array
           title: Sentiment
+        sentiment_turns:
+          items:
+            $ref: '#/components/schemas/TurnAnalysis'
+          type: array
+          title: Sentiment Turns
         booked:
           type: boolean
           title: Booked
@@ -269,6 +274,60 @@ components:
       - latency_ms
       - api_ms
       title: Transcript
+    TurnAnalysis:
+      properties:
+        sentiment:
+          anyOf:
+          - type: string
+            enum:
+            - Positive
+            - Neutral
+            - Negative
+          - type: 'null'
+          title: Sentiment
+        signals:
+          items:
+            type: string
+            enum:
+            - budget
+            - authority
+            - need
+            - timeline
+          type: array
+          title: Signals
+        score:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: -1.0
+          - type: 'null'
+          title: Score
+        confidence:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Confidence
+        buying_signal:
+          type: string
+          enum:
+          - none
+          - interest
+          - ready_to_buy
+          - declining
+          title: Buying Signal
+          default: none
+        status:
+          type: string
+          enum:
+          - analyzed
+          - not_analyzed
+          - mock
+          title: Status
+          default: analyzed
+      type: object
+      title: TurnAnalysis
     ValidationError:
       properties:
         loc:

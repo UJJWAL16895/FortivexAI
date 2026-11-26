@@ -34,7 +34,9 @@ export default function CockpitRecords({ view, crm, insights }) {
     {calls.map((call, index) => <article className="record" key={index}>
       <h4>{call.rating} · {call.score}/100</h4>
       <p>{call.summary}</p>
-      <p>Sentiment by turn · {call.sentiment.join(' → ')}</p>
+      <p>Sentiment by turn · {call.sentiment_turns?.length ? call.sentiment_turns.map(item =>
+        item.status === 'mock' ? 'Mock (rule-based): ' + item.sentiment : item.sentiment || 'Not analyzed').join(' → ')
+        : call.sentiment.length ? 'Legacy (source unavailable): ' + call.sentiment.join(' → ') : 'Not analyzed'}</p>
       <p><strong>Next action</strong> · {call.next_action}</p>
       <p><strong>Follow-up draft</strong> · {call.follow_up_draft}</p>
       <button type="button" className="cockpit-button" onClick={() => downloadReport(call)}>Export call report</button>

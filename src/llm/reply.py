@@ -83,10 +83,13 @@ class ReplyPath:
         )
         system = PERSONA + "\nSession data: " + context
         started = monotonic()
-        for label, model, thinking in (
+        candidates = [
             ("Gemini A", settings.gemini_model, settings.gemini_thinking),
             ("Gemini B", settings.gemini_fallback_model, settings.gemini_fallback_thinking),
-        ):
+        ]
+        validation_retry = False
+        while candidates:
+            label, model, thinking = candidates.pop(0)
             if not model:
                 continue
             yield {"type": "provider", "provider": label, "model": model, "status": "trying"}
@@ -104,6 +107,9 @@ class ReplyPath:
                 draft = LiveDraft.model_validate_json(raw)
             except (ProviderError, ValidationError) as error:
                 code = error.status if isinstance(error, ProviderError) else 502
+                if isinstance(error, ValidationError) and not validation_retry:
+                    validation_retry = True
+                    candidates.insert(0, (label, model, thinking))
                 if code == 429 and isinstance(error, ProviderError) and not error.local:
                     self.budget.cooldown = monotonic() + 10
                 yield {
@@ -132,6 +138,10 @@ class ReplyPath:
             yield {
                 "type": "draft",
                 "action": draft.action,
+                "booking": draft.booking,
+                "analysis": draft.analysis,
+                "lead_update": draft.lead_update,
+                "buying_signal": draft.buying_signal,
                 "lines": lines,
                 "model": model,
                 "latency_ms": first,

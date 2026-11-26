@@ -179,3 +179,13 @@ Think of the model as a sales rep with a short notebook and reviewed fact cards 
 3. **What happens to other sentences when one claim fails?** They stay in the reply.
 4. **Can the model commit a booking by itself?** No. The server still checks the explicit command and available slot.
 5. **What did the real smoke establish?** The provider accepted a structured request in isolation. Socket requests hit failures and quota, so live reply latency remains unmeasured.
+
+### LIVE booking and sentiment fixes
+
+The caller’s words tell Gemini what to propose. Think of an offer as a calendar entry written in pencil. The system waits for a yes and then writes it to the database. Only a committed slot gets a receipt.
+
+1. **What parses “kal shaam 5 baje”?** Gemini returns a datetime using the local IST clock.
+2. **What prevents two same-slot bookings?** The database has one unique owner per slot. The losing session gets alternatives.
+3. **Why use the same request for sentiment?** The model already reads the full turn. One structured response saves a separate provider request.
+4. **When does the console say Not analyzed?** The model could not classify the input, or its request failed before a valid result arrived.
+5. **Why does the guardrail line appear once?** The server replaces the rejected draft with one approved response.

@@ -33,7 +33,8 @@ def fake_provider(monkeypatch):
 
     async def stream(*args):
         if args[4] == "What do you remember?":
-            yield '{"action":"lead","lines":[{"text":"I can repeat your details.","kind":"conversation"}]}'
+            assert "Asha" in args[6]
+            yield '{"action":"lead","lines":[{"text":"Your name is Asha.","kind":"conversation"}]}'
         else:
             yield '{"action":"none","lines":[{"text":"How many locations do you manage today?","kind":"conversation"}]}'
 
